@@ -12,22 +12,23 @@ library(stringr)
 library(ctregistries)
 
 # Load registry data
-TRN_registry_data = read_rds("TRN(registry data).rds")
+TRN_registry_data <- read_rds("TRN(registry data).rds")
 
 # Load title matching data
-title_matches = read_rds("title_matched_7.rds")
+title_matches <- read_rds("title_matched_7.rds")
 
 # Load the publications table once it's ready
-publications = read_rds("publications_final.rds")
+publications <- read_rds("publications_final.rds")
 
 # Load list of IV trials
 dir_processed <- here("data", "processed")
 trials <- read_csv(path(dir_processed, "trials.csv"))
-trials = trials %>% select(id)
+trials <- trials %>%
+          select(id)
 
 
 ## Build our empty TRN-TRN table
-trn_trn = data.frame(
+trn_trn <- data.frame(
   trn1 = numeric(),
   trn2 = numeric(),
   registry1 = character(),
@@ -58,23 +59,23 @@ add_trn_trn_row <- function(trn1, trn2, registry1 = NA, registry2 = NA,
 
   # Create a new row with the provided parameters
   new_row <- data.frame(
-    trn1 = trn1,
-    trn2 = trn2,
-    registry1 = as.character(registry1),
-    registry2 = as.character(registry2),
-    trn1inreg2 = as.logical(trn1inreg2),
-    trn2inreg1 = as.logical(trn2inreg1),
-    pub_si = as.logical(pub_si),
-    pub_abs = as.logical(pub_abs),
-    pub_ft = as.logical(pub_ft),
-    is_match_protocol_sponsor_protocol_id = as.logical(is_match_protocol_sponsor_protocol_id),
-    is_match_results_sponsor_protocol_id = as.logical(is_match_results_sponsor_protocol_id),
-    is_title_matched = as.logical(is_title_matched),
-    other = as.character(other),
-    crossreg_manual_valid = as.logical(crossreg_manual_valid),
-    validation_date = as.Date(validation_date, format = "%Y-%m-%d"),
-    comment = as.character(comment),
-    stringsAsFactors = FALSE
+    trn1 <- trn1,
+    trn2 <- trn2,
+    registry1 <- as.character(registry1),
+    registry2 <- as.character(registry2),
+    trn1inreg2 <- as.logical(trn1inreg2),
+    trn2inreg1 <- as.logical(trn2inreg1),
+    pub_si <- as.logical(pub_si),
+    pub_abs <- as.logical(pub_abs),
+    pub_ft <- as.logical(pub_ft),
+    is_match_protocol_sponsor_protocol_id <- as.logical(is_match_protocol_sponsor_protocol_id),
+    is_match_results_sponsor_protocol_id <- as.logical(is_match_results_sponsor_protocol_id),
+    is_title_matched <- as.logical(is_title_matched),
+    other <- as.character(other),
+    crossreg_manual_valid <- as.logical(crossreg_manual_valid),
+    validation_date <- as.Date(validation_date, format = "%Y-%m-%d"),
+    comment <- as.character(comment),
+    stringsAsFactors <- FALSE
   )
 
   # Add the new row to the trn_trn table
@@ -156,16 +157,16 @@ for (i in 1:nrow(TRN_registry_data)) {
         # with a different trns_reg, it is necessary to first unlist using semicolons as dividers, and then to look at all these discrete strings
         # together. The same is done to check the converse (trn2inreg1).
 
-        current_trn1inreg2 = current_id %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn], ";"), unlist))
-        current_trn2inreg1 = current_trn %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_id], ";"), unlist))
+        current_trn1inreg2 <- current_id %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn], ";"), unlist))
+        current_trn2inreg1 <- current_trn %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_id], ";"), unlist))
 
         # Add new row to trn_trn if pairing is unique and not self-referential.
-        trn_trn <- add_trn_trn_row(trn1 = current_id,
-                                   trn2 = current_trn,
-                                   registry1 = which_registry(current_id),
-                                   registry2 = which_registry(current_trn),
-                                   trn1inreg2 = current_trn1inreg2,
-                                   trn2inreg1 = current_trn2inreg1)
+        trn_trn <- add_trn_trn_row(trn1 <- current_id,
+                                   trn2 <- current_trn,
+                                   registry1 <- which_registry(current_id),
+                                   registry2 <- which_registry(current_trn),
+                                   trn1inreg2 <- current_trn1inreg2,
+                                   trn2inreg1 <- current_trn2inreg1)
       }
     }
   }
@@ -195,19 +196,19 @@ for (i in 1:nrow(TRN_registry_data)) {
     # If the pair exists already, update the boolean is_match_sponsor_protocol ID to reflect new layer of connection
     if (any(trn_trn$trn1 == current_id & trn_trn$trn2 == current_protocol_sponsor_linked_trn)) {
 
-      trn_trn <- update_trn_trn_row(trn1 = current_id,
-                                    trn2 = current_protocol_sponsor_linked_trn,
-                                    is_match_protocol_sponsor_protocol_id = TRUE)
+      trn_trn <- update_trn_trn_row(trn1 <- current_id,
+                                    trn2 <- current_protocol_sponsor_linked_trn,
+                                    is_match_protocol_sponsor_protocol_id <- TRUE)
     }
     # If the pairing is unique, add new row to table with is_match_sponsor_protocol_id initialized to TRUE
     else {
-      trn_trn <- add_trn_trn_row(trn1 = current_id,
-                                 trn2 = current_protocol_sponsor_linked_trn,
-                                 registry1 = which_registry(current_id),
-                                 registry2 = which_registry(current_protocol_sponsor_linked_trn),
-                                 trn1inreg2 = NA,
-                                 trn2inreg1 = NA,
-                                 is_match_protocol_sponsor_protocol_id = TRUE)
+      trn_trn <- add_trn_trn_row(trn1 <- current_id,
+                                 trn2 <- current_protocol_sponsor_linked_trn,
+                                 registry1 <- which_registry(current_id),
+                                 registry2 <- which_registry(current_protocol_sponsor_linked_trn),
+                                 trn1inreg2 <- NA,
+                                 trn2inreg1 <- NA,
+                                 is_match_protocol_sponsor_protocol_id <- TRUE)
     }
   }
 }
@@ -231,19 +232,19 @@ for (i in 1:nrow(TRN_registry_data)) {
     # If the pair exists already, update the boolean is_match_sponsor_protocol ID to reflect new layer of connection
     if (any(trn_trn$trn1 == current_id & trn_trn$trn2 == current_results_sponsor_linked_trn)) {
 
-      trn_trn <- update_trn_trn_row(trn1 = current_id,
-                                    trn2 = current_results_sponsor_linked_trn,
-                                    is_match_results_sponsor_protocol_id = TRUE)
+      trn_trn <- update_trn_trn_row(trn1 <- current_id,
+                                    trn2 <- current_results_sponsor_linked_trn,
+                                    is_match_results_sponsor_protocol_id <- TRUE)
     }
     # If the pairing is unique, add new row to table with is_match_sponsor_protocol_id initialized to TRUE
     else {
-      trn_trn <- add_trn_trn_row(trn1 = current_id,
-                                 trn2 = current_results_sponsor_linked_trn,
-                                 registry1 = which_registry(current_id),
-                                 registry2 = which_registry(current_results_sponsor_linked_trn),
-                                 trn1inreg2 = NA,
-                                 trn2inreg1 = NA,
-                                 is_match_results_sponsor_protocol_id = TRUE)
+      trn_trn <- add_trn_trn_row(trn1 <- current_id,
+                                 trn2 <- current_results_sponsor_linked_trn,
+                                 registry1 <- which_registry(current_id),
+                                 registry2 <- which_registry(current_results_sponsor_linked_trn),
+                                 trn1inreg2 <- NA,
+                                 trn2inreg1 <- NA,
+                                 is_match_results_sponsor_protocol_id <- TRUE)
     }
   }
 }
@@ -253,8 +254,8 @@ for (i in 1:nrow(TRN_registry_data)) {
 # Now lets add matches made from the title matching algorithm. Will follow similar logic to steps above
 
 for (i in 1:nrow(title_matches)) {
-  current_trn1 = title_matches$id[i]
-  current_trn2 = title_matches$euctr_id[i]
+  current_trn1 <- title_matches$id[i]
+  current_trn2 <- title_matches$euctr_id[i]
 
   # Eliminate all self-references
   if (current_trn1 != current_trn2) {
@@ -262,23 +263,23 @@ for (i in 1:nrow(title_matches)) {
     # If the pair exists already, update the boolean is_match_sponsor_protocol ID to reflect new layer of connection
     if (any(trn_trn$trn1 == current_trn1 & trn_trn$trn2 == current_trn2)) {
 
-      trn_trn <- update_trn_trn_row(trn1 = current_trn1,
-                                    trn2 = current_trn2,
-                                    is_title_matched = TRUE)
+      trn_trn <- update_trn_trn_row(trn1 <- current_trn1,
+                                    trn2 <- current_trn2,
+                                    is_title_matched <- TRUE)
     }
     else {
 
-      current_trn1inreg2 = current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
-      current_trn2inreg1 = current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
+      current_trn1inreg2 <- current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
+      current_trn2inreg1 <- current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
 
       # Add new row to trn_trn if pairing is unique and not self-referential.
-      trn_trn <- add_trn_trn_row(trn1 = current_trn1,
-                                 trn2 = current_trn2,
-                                 registry1 = which_registry(current_trn1),
-                                 registry2 = which_registry(current_trn2),
-                                 trn1inreg2 = current_trn1inreg2,
-                                 trn2inreg1 = current_trn2inreg1,
-                                 is_title_matched = TRUE)
+      trn_trn <- add_trn_trn_row(trn1 <- current_trn1,
+                                 trn2 <- current_trn2,
+                                 registry1 <- which_registry(current_trn1),
+                                 registry2 <- which_registry(current_trn2),
+                                 trn1inreg2 <- current_trn1inreg2,
+                                 trn2inreg1 <- current_trn2inreg1,
+                                 is_title_matched <- TRUE)
       }
 
   }
@@ -292,15 +293,15 @@ for (i in 1:nrow(title_matches)) {
 for (i in 1:nrow(publications)) {
 
   # load variables for each row
-  current_trn1 = publications$primary_IV_id[i]
-  current_trns_si = publications$trns_si[i]
-  current_trns_abs = publications$trns_abs[i]
-  current_trns_ft = publications$trns_ft[i]
+  current_trn1 <- publications$primary_IV_id[i]
+  current_trns_si <- publications$trns_si[i]
+  current_trns_abs <- publications$trns_abs[i]
+  current_trns_ft <- publications$trns_ft[i]
 
   # unlist TRNs from semicolon separated format for each row
-  si_list =  strsplit(current_trns_si, ";")[[1]]
-  abs_list = strsplit(current_trns_abs, ";")[[1]]
-  ft_list = strsplit(current_trns_ft, ";")[[1]]
+  si_list <- strsplit(current_trns_si, ";")[[1]]
+  abs_list <- strsplit(current_trns_abs, ";")[[1]]
+  ft_list <- strsplit(current_trns_ft, ";")[[1]]
 
   ###### First go through SI TRNs, provided that the field is not NA or empty
   if (!is.na(current_trns_si) & current_trns_si != "") {
@@ -320,23 +321,23 @@ for (i in 1:nrow(publications)) {
         # If the match already exists, just update with new boolean info
         if (any(trn_trn$trn1 == current_trn1 & trn_trn$trn2 == current_trn2)) {
 
-          trn_trn <- update_trn_trn_row(trn1 = current_trn1,
-                                        trn2 = current_trn2,
-                                        pub_si = TRUE)
+          trn_trn <- update_trn_trn_row(trn1 <- current_trn1,
+                                        trn2 <- current_trn2,
+                                        pub_si <- TRUE)
         }
         # If the match is unique, add new row with necessary info
         else {
-          current_trn1inreg2 = current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
-          current_trn2inreg1 = current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
+          current_trn1inreg2 <- current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
+          current_trn2inreg1 <- current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
 
           # Add new row to trn_trn if pairing is unique and not self-referential.
-          trn_trn <- add_trn_trn_row(trn1 = current_trn1,
-                                     trn2 = current_trn2,
-                                     registry1 = which_registry(current_trn1),
-                                     registry2 = which_registry(current_trn2),
-                                     trn1inreg2 = current_trn1inreg2,
-                                     trn2inreg1 = current_trn2inreg1,
-                                     pub_si = TRUE)
+          trn_trn <- add_trn_trn_row(trn1 <- current_trn1,
+                                     trn2 <- current_trn2,
+                                     registry1 <- which_registry(current_trn1),
+                                     registry2 <- which_registry(current_trn2),
+                                     trn1inreg2 <- current_trn1inreg2,
+                                     trn2inreg1 <- current_trn2inreg1,
+                                     pub_si <- TRUE)
         }
       }
     }
@@ -360,23 +361,23 @@ for (i in 1:nrow(publications)) {
         # If the match already exists, just update with new boolean info
         if (any(trn_trn$trn1 == current_trn1 & trn_trn$trn2 == current_trn2)) {
 
-          trn_trn <- update_trn_trn_row(trn1 = current_trn1,
-                                        trn2 = current_trn2,
-                                        pub_abs = TRUE)
+          trn_trn <- update_trn_trn_row(trn1 <- current_trn1,
+                                        trn2 <- current_trn2,
+                                        pub_abs <- TRUE)
         }
         # If the match is unique, add new row with necessary info
         else {
-          current_trn1inreg2 = current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
-          current_trn2inreg1 = current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
+          current_trn1inreg2 <- current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
+          current_trn2inreg1 <- current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
 
           # Add new row to trn_trn if pairing is unique and not self-referential.
-          trn_trn <- add_trn_trn_row(trn1 = current_trn1,
-                                     trn2 = current_trn2,
-                                     registry1 = which_registry(current_trn1),
-                                     registry2 = which_registry(current_trn2),
-                                     trn1inreg2 = current_trn1inreg2,
-                                     trn2inreg1 = current_trn2inreg1,
-                                     pub_abs = TRUE)
+          trn_trn <- add_trn_trn_row(trn1 <- current_trn1,
+                                     trn2 <- current_trn2,
+                                     registry1 <- which_registry(current_trn1),
+                                     registry2 <- which_registry(current_trn2),
+                                     trn1inreg2 <- current_trn1inreg2,
+                                     trn2inreg1 <- current_trn2inreg1,
+                                     pub_abs <- TRUE)
         }
       }
     }
@@ -401,23 +402,23 @@ for (i in 1:nrow(publications)) {
         # If the match already exists, just update with new boolean info
         if (any(trn_trn$trn1 == current_trn1 & trn_trn$trn2 == current_trn2)) {
 
-          trn_trn <- update_trn_trn_row(trn1 = current_trn1,
-                                        trn2 = current_trn2,
-                                        pub_ft = TRUE)
+          trn_trn <- update_trn_trn_row(trn1 <- current_trn1,
+                                        trn2 <- current_trn2,
+                                        pub_ft <- TRUE)
         }
         # If the match is unique, add new row with necessary info
         else {
-          current_trn1inreg2 = current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
-          current_trn2inreg1 = current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
+          current_trn1inreg2 <- current_trn1 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn2], ";"), unlist))
+          current_trn2inreg1 <- current_trn2 %in% unlist(lapply(strsplit(TRN_registry_data$trns_reg[TRN_registry_data$id == current_trn1], ";"), unlist))
 
           # Add new row to trn_trn if pairing is unique and not self-referential.
-          trn_trn <- add_trn_trn_row(trn1 = current_trn1,
-                                     trn2 = current_trn2,
-                                     registry1 = which_registry(current_trn1),
-                                     registry2 = which_registry(current_trn2),
-                                     trn1inreg2 = current_trn1inreg2,
-                                     trn2inreg1 = current_trn2inreg1,
-                                     pub_ft = TRUE)
+          trn_trn <- add_trn_trn_row(trn1 <- current_trn1,
+                                     trn2 <- current_trn2,
+                                     registry1 <- which_registry(current_trn1),
+                                     registry2 <- which_registry(current_trn2),
+                                     trn1inreg2 <- current_trn1inreg2,
+                                     trn2inreg1 <- current_trn2inreg1,
+                                     pub_ft <- TRUE)
         }
       }
     }
@@ -445,16 +446,20 @@ trn_trn <- unique(trn_trn) # if this is doing anything it means something isn't 
 ## Adding so called 'meta booleans' to make it easier to assign priorities to rows for manual validation stage
 
 # Boolean for whether at least one of the registries is EU
-trn_trn = trn_trn %>% mutate(at_least_one_EU = if_else((registry1 == "EudraCT" | registry2 == "EudraCT"), TRUE, FALSE))
+trn_trn <- trn_trn %>%
+           mutate(at_least_one_EU = if_else((registry1 == "EudraCT" | registry2 == "EudraCT"), TRUE, FALSE))
 
 # Boolean for whether at least one of the TRNs is in IV
-trn_trn = trn_trn %>% mutate(at_least_one_IV = if_else((trn1 %in% trials | trn2 %in% trials$id), TRUE, FALSE))
+trn_trn <- trn_trn %>%
+           mutate(at_least_one_IV = if_else((trn1 %in% trials | trn2 %in% trials$id), TRUE, FALSE))
 
 # Boolean for at least one of the pub booleans being TRUE
-trn_trn = trn_trn %>% mutate(at_least_one_pub = if_else(!is.na(pub_si) | !is.na(pub_abs) | !is.na(pub_ft), TRUE, FALSE))
+trn_trn <- trn_trn %>%
+           mutate(at_least_one_pub = if_else(!is.na(pub_si) | !is.na(pub_abs) | !is.na(pub_ft), TRUE, FALSE))
 
 # Boolean for at least one of the sponsor protocol ID booleans being TRUE
-trn_trn = trn_trn %>% mutate(at_least_one_sponsor_match = if_else(!is.na(is_match_protocol_sponsor_protocol_id) | !is.na(is_match_results_sponsor_protocol_id), TRUE, FALSE))
+trn_trn <- trn_trn %>%
+           mutate(at_least_one_sponsor_match = if_else(!is.na(is_match_protocol_sponsor_protocol_id) | !is.na(is_match_results_sponsor_protocol_id), TRUE, FALSE))
 
 
 ####################################################################################################################
@@ -463,7 +468,7 @@ trn_trn = trn_trn %>% mutate(at_least_one_sponsor_match = if_else(!is.na(is_matc
 # Need to account for NA values here for non 'meta-booleans'
 # Use coalesce() function: returns the first non-NA value in a list. Eg.) coalesce(NA, FALSE) == FALSE ; coalesce(NA, NA, 7) == 7
 
-trn_trn = trn_trn %>%
+trn_trn <- trn_trn %>%
           mutate(priority = case_when(
 
             # Priority 1
