@@ -13,7 +13,7 @@ library(fs)
 library(lubridate)
 library(stringr)
 library(ctregistries)
-
+library(cli)
 
 dir_raw <- here("data", "raw")
 dir_processed <- here("data", "processed")
@@ -90,8 +90,14 @@ for (col in protocol_columns_to_clean) {
   EU_protocol_clean[[unclean_col]] <- NA_character_
 }
 
+# Add progress bar (Be patient, progress bar takes at least 10 minutes to display at all)
+
+cli_progress_bar(name = "Cleaning EU protocol data columns (3 total) : ", total = 3)
+
 # Clean table column by column
 for (col in protocol_columns_to_clean) {
+
+
   cleaned_trns <- vector("list", length <- nrow(EU_protocol_clean))
 
   # 'trn' is the id in each row currently being cleaned
@@ -100,7 +106,7 @@ for (col in protocol_columns_to_clean) {
     trn <- EU_protocol_clean[i, col]
 
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
-    cleaned <- tryCatch(clean_trn(trn, quiet <- TRUE), error <- function(e) "Error")
+    cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
     # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
     if(cleaned == "Error" | is.na(trn)) {
@@ -118,8 +124,13 @@ for (col in protocol_columns_to_clean) {
   }
   # Cleaned TRNs are placed back in the column they belong
   EU_protocol_clean[, col] <- unlist(cleaned_trns)
+
+  # Update progress bar
+  cli_progress_update()
 }
 
+# Terminate progress bar
+cli_progress_done()
 
 ##########################################################
 ## Clean the last few stragglers not caught by algorithm and put in trns_reg
@@ -206,6 +217,9 @@ for (col in results_columns_to_clean) {
   EU_results_clean[[unclean_col]] <- NA_character_
 }
 
+# Add progress bar (be patient)
+cli_progress_bar(name = "Cleaning EU results data columns (3 total) : ", total = 3)
+
 # Clean table column by column
 for (col in results_columns_to_clean) {
   cleaned_trns <- vector("list", length <- nrow(EU_results_clean))
@@ -216,7 +230,7 @@ for (col in results_columns_to_clean) {
     trn <- EU_results_clean[i, col]
 
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
-    cleaned <- tryCatch(clean_trn(trn, quiet <- TRUE), error <- function(e) "Error")
+    cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
     # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
     if(cleaned == "Error" | is.na(trn)) {
@@ -232,9 +246,16 @@ for (col in results_columns_to_clean) {
       EU_results_clean[[unclean_col]][i] <- NA
     }
   }
+
   # Cleaned TRNs are placed back in the column they belong
   EU_results_clean[, col] <- unlist(cleaned_trns)
+
+  # Update progress bar
+  cli_progress_update()
 }
+
+# Terminate progress bar
+cli_progress_done()
 
 ##########################################################
 ## Clean the Dutch stragglers from EU_results_clean not caught by algorithm and put in trns_reg
