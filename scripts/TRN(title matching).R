@@ -12,6 +12,7 @@ library(lubridate)
 library(stringr)
 library(stringdist)
 library(ctregistries)
+library(cli)
 
 dir_raw <- here("data", "raw")
 dir_processed <- here("data", "processed")
@@ -47,10 +48,12 @@ NCT_full_titles <- studies %>%
                   rename(title = official_title)
 
 # Update NCT titles in IV_ids, leaving DRKS titles intact
+IV_ids <- rename(IV_ids, brief = title)
+NCT_full_titles <- rename(NCT_full_titles, official = title)
 
 IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") %>%
-                     mutate(title = ifelse(is.na(title.y), title.x, title.y)) %>%
-                     select(-title.x, -title.y)
+                     mutate(title = ifelse(is.na(official), brief, official)) %>%
+                     select(-brief, -official)
 
 # Filter out EU trials which dont have 'Germany' listed in member_state_concerned AND national_competent authority
 # Yields table with 13068 unique trials which mention Germany in both of these fields
@@ -83,16 +86,22 @@ EU_only_German <- EU_only_German %>% select(id,title) |>
 
 # assigning maxDist value for title matching (Elements in x will not be matched
 # with elements of table if their distance is larger than maxDist)
-distance <- 7
+DISTANCE <- 7
+
+
+## The below takes about 3.5 hours on my baseline 2020 MacBook Air
+## Let it run, it takes a while!!
+
+start_time <- Sys.time()
 
 # use amatch function to find title matches
-title_matches <- cbind(
+ title_matches <- cbind(
   euctr_title_tm = EU_only_German$title,
   euctr_id = EU_only_German$id,
   IV_updated_titles[amatch(
     EU_only_German$title_processed,
     IV_updated_titles$title_processed,
-    maxDist = distance, matchNA = FALSE),]
+    maxDist = DISTANCE, matchNA = FALSE),]
 ) |>
   # keep only those where a match was found
   filter(
@@ -108,8 +117,12 @@ title_matches <- cbind(
     has_crossreg_eudract_tm = TRUE
   )
 
+end_time <- Sys.time()
+total_time <- end_time - start_time
+
+
 # store title matching results in distance specific dataframe
-assign(paste0("title_matches_", distance), title_matches)
+assign(paste0("title_matches_", DISTANCE), title_matches)
 
 ##########################################################
 
