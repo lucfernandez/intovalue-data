@@ -411,5 +411,5 @@ TRN_registry_data <- left_join(TRN_registry_data, protocol_sponsor_linked_ids, b
 TRN_registry_data <- left_join(TRN_registry_data, results_sponsor_linked_ids, by = "results_sponsor_code") |>
                     relocate(results_sponsor_linked_trn, .after = results_sponsor_code)
 
-## Save as RDS
-saveRDS(TRN_registry_data, "TRN(registry data).rds" )
+## Save as RDS ( will overwrite previous version)
+saveRDS(TRN_registry_data, "data/TRN(registry data).rds" )

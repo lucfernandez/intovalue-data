@@ -53,4 +53,4 @@ pubs_with_info <-
   mutate(across(starts_with("trn"), ~ na_if(., "NA"))) |>
   add_column(trns_other = NA)
 
-saveRDS(pubs_with_info, "publications_final.rds")
+saveRDS(pubs_with_info, "data/publications_final.rds")

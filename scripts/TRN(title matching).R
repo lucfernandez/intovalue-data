@@ -127,7 +127,7 @@ assign(paste0("title_matches_", DISTANCE), title_matches)
 ##########################################################
 
 # Save to RDS to use in trn_trn script
-saveRDS(title_matches_7, "title_matched_7.rds" )
+saveRDS(title_matches_7, "data/title_matched_7.rds" )
 
 
 

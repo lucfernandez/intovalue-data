@@ -528,4 +528,4 @@ trn_trn <- trn_trn |>
             ))
 
 # save
-saveRDS(trn_trn, "trn_trn.rds")
+saveRDS(trn_trn, "data/trn_trn.rds")
