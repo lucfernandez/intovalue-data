@@ -30,11 +30,11 @@ studies <- read_csv(path(dir_raw,"studies.csv" ))
 
 # extract IDs and Titles, and whatever information we want to filter by here for the EU trials.
 # Since IV trials don't have country info like EU trials, we will just get the ID and title here
-IV_ids <- trials %>%
-          select(id,title) %>%
+IV_ids <- trials |>
+          select(id,title) |>
           unique()
 
-EU_ids <- EU_dump %>%
+EU_ids <- EU_dump |>
           select(eudract_number,
                  member_state_concerned,
                  national_competent_authority,
@@ -42,38 +42,38 @@ EU_ids <- EU_dump %>%
 
 EU_ids <- rename(EU_ids, id = eudract_number, state = member_state_concerned, title = full_title_of_the_trial, authority = national_competent_authority)
 
-NCT_full_titles <- studies %>%
-                  select(nct_id, official_title) %>%
-                  rename(id = nct_id) %>%
+NCT_full_titles <- studies |>
+                  select(nct_id, official_title) |>
+                  rename(id = nct_id) |>
                   rename(title = official_title)
 
 # Update NCT titles in IV_ids, leaving DRKS titles intact
 IV_ids <- rename(IV_ids, brief = title)
 NCT_full_titles <- rename(NCT_full_titles, official = title)
 
-IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") %>%
-                     mutate(title = ifelse(is.na(official), brief, official)) %>%
+IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") |>
+                     mutate(title = ifelse(is.na(official), brief, official)) |>
                      select(-brief, -official)
 
 # Filter out EU trials which dont have 'Germany' listed in member_state_concerned AND national_competent authority
 # Yields table with 13068 unique trials which mention Germany in both of these fields
 # Can filter however we want here.
 
-EU_only_German <- EU_ids %>%
+EU_only_German <- EU_ids |>
                   filter(grepl('Germany', state) & grepl('Germany', authority))
 
 ##########################################################
 
 # Process titles a bit before title matching
 
-IV_updated_titles <- IV_updated_titles %>%
+IV_updated_titles <- IV_updated_titles |>
                                mutate(title_processed = tolower(title) |>
                                stringr::str_squish() |> # remove whitespace at start and end, as well as any "\t" whitespace characters
                                stringr::str_remove_all("[:punct:]") |>
                                stringr::str_remove_all(" ")) |>
                                select(id, title, title_processed)
 
-EU_only_German <- EU_only_German %>% select(id,title) |>
+EU_only_German <- EU_only_German |> select(id,title) |>
                                      tidyr::drop_na(title) |>
                                      distinct(id, title,.keep_all = TRUE) |>
                                      mutate(title_processed = tolower(title) |>
