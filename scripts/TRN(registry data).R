@@ -39,23 +39,23 @@ sponsor_linked_ids <- read_csv(path(dir_raw, "ids.csv"))
 ##########################################################
 
 # extract only IDs from 'trials' so that we can check what TRNs are in IV later
-IV_ids <- trials %>%
-          select(id) %>%
+IV_ids <- trials |>
+          select(id) |>
           unique()
 
 ##########################################################
 
 # Clean and prepare IV trns separately before merging with EU
 
-IV_clean <- cross_registrations %>%
-  filter(is_crossreg_reg) %>%
-  group_by(id) %>%
-  summarize(trns_reg = paste(crossreg_trn, collapse = ";")) %>%
-  mutate(protocol_sponsor_code = NA) %>%
-  mutate(results_sponsor_code = NA) %>%
-  relocate(protocol_sponsor_code, .before = trns_reg) %>%
-  relocate(results_sponsor_code, .before = trns_reg) %>%
-  mutate(is_primary_IV_id = TRUE) %>%
+IV_clean <- cross_registrations |>
+  filter(is_crossreg_reg) |>
+  group_by(id) |>
+  summarize(trns_reg = paste(crossreg_trn, collapse = ";")) |>
+  mutate(protocol_sponsor_code = NA) |>
+  mutate(results_sponsor_code = NA) |>
+  relocate(protocol_sponsor_code, .before = trns_reg) |>
+  relocate(results_sponsor_code, .before = trns_reg) |>
+  mutate(is_primary_IV_id = TRUE) |>
   mutate(who_utn = NA)
 
 
@@ -63,13 +63,13 @@ IV_clean <- cross_registrations %>%
 
 # Clean and prepare EU protocol trns separately before merging with IV_clean
 
-EU_protocol_clean <- EU_protocol_dump %>%
+EU_protocol_clean <- EU_protocol_dump |>
                      select(eudract_number,
                             sponsor_s_protocol_code_number,
                             isrctn_international_standard_randomised_controlled_trial_numbe,
                             us_nct_clinicaltrials_gov_registry_number,
                             who_universal_trial_reference_number_utrn,
-                            other_identifiers) %>%
+                            other_identifiers) |>
                      rename(isrctn_number =  isrctn_international_standard_randomised_controlled_trial_numbe,
                             nct_number = us_nct_clinicaltrials_gov_registry_number,
                             who_utn_number = who_universal_trial_reference_number_utrn,
@@ -194,7 +194,7 @@ EU_protocol_clean <- EU_protocol_clean[, !(names(EU_protocol_clean) %in% c("othe
 ##########################################################
 
 # Clean EU results data and merge whatever extra information we get from this into our bigger EU table before merging that with our IV table
-EU_results_clean <- EU_results_dump %>%
+EU_results_clean <- EU_results_dump |>
                     select(trial_id,
                            nct_number,
                            isrctn_number,
@@ -298,10 +298,10 @@ EU_protocol_clean <- unite(EU_protocol_clean,
                           nct_number,
                           other_ids,
                           sep = ";",
-                          na.rm = TRUE) %>%
-                    rename(id = eudract_number) %>%
-                    rename(who_utn_number_protocol = who_utn_number) %>%
-                    relocate(protocol_sponsor_code, .before = trns_reg_protocol) %>%
+                          na.rm = TRUE) |>
+                    rename(id = eudract_number) |>
+                    rename(who_utn_number_protocol = who_utn_number) |>
+                    relocate(protocol_sponsor_code, .before = trns_reg_protocol) |>
                     mutate(is_primary_IV_id = id %in% IV_ids$id)
 
 EU_results_clean <- unite(EU_results_clean,
@@ -310,8 +310,8 @@ EU_results_clean <- unite(EU_results_clean,
                          isrctn_number,
                          other_ids,
                          sep = ";",
-                         na.rm = TRUE) %>%
-                    rename(id = trial_id) %>%
+                         na.rm = TRUE) |>
+                    rename(id = trial_id) |>
                     rename(results_sponsor_code = spon_prot_number)
 
 # Merge the 2 above tables into one master EU table. If trial IDs are repeated, concatenate the trns_reg field of each table into one new trns_reg column
@@ -362,17 +362,17 @@ EU_clean$combined_trns_reg <- sapply(EU_clean$combined_trns_reg, function(trns) 
 EU_clean <- subset(EU_clean, select = -c(trns_reg_protocol, trns_reg_results))
 
 # renaming and reordering columns to make binding easier
-EU_clean <- rename(EU_clean, trns_reg = combined_trns_reg) %>%
-            relocate(trns_reg, .after = protocol_sponsor_code) %>%
+EU_clean <- rename(EU_clean, trns_reg = combined_trns_reg) |>
+            relocate(trns_reg, .after = protocol_sponsor_code) |>
             relocate(is_primary_IV_id, .after = trns_reg)
 
 # editing IV_clean to make binding possible
-IV_clean <- rename(IV_clean, who_utn_combined = who_utn) %>%
-           mutate(isrctn_number_protocol_unclean = NA) %>%
-           mutate(nct_number_protocol_unclean = NA) %>%
-           mutate(other_ids_protocol_unclean = NA) %>%
-           mutate(nct_number_results_unclean = NA) %>%
-           mutate(isrctn_number_results_unclean = NA) %>%
+IV_clean <- rename(IV_clean, who_utn_combined = who_utn) |>
+           mutate(isrctn_number_protocol_unclean = NA) |>
+           mutate(nct_number_protocol_unclean = NA) |>
+           mutate(other_ids_protocol_unclean = NA) |>
+           mutate(nct_number_results_unclean = NA) |>
+           mutate(isrctn_number_results_unclean = NA) |>
            mutate(other_ids_results_unclean = NA)
 
 
@@ -385,30 +385,30 @@ TRN_duplicates <- rbind(EU_clean, IV_clean)
 TRN_registry_data <- TRN_duplicates[!duplicated(TRN_duplicates),]
 
 # Another reordering to make things neater before joining in ids.csv
-TRN_registry_data <- TRN_registry_data %>%
-                    relocate(protocol_sponsor_code, .after = trns_reg) %>%
+TRN_registry_data <- TRN_registry_data |>
+                    relocate(protocol_sponsor_code, .after = trns_reg) |>
                     relocate(results_sponsor_code, .after = protocol_sponsor_code)
 
 ##########################################################
 # Now in one final addition of information, we will join in ids.csv
 # See if id_value field in that table matches with our sponsor_s_protocol_code_number field. If they match, bring in the value from the nct_id field in ids.csv table
 
-protocol_sponsor_linked_ids <- sponsor_linked_ids %>%
-                              rename(protocol_sponsor_code = id_value) %>%
-                              rename(protocol_sponsor_linked_trn = nct_id) %>%
+protocol_sponsor_linked_ids <- sponsor_linked_ids |>
+                              rename(protocol_sponsor_code = id_value) |>
+                              rename(protocol_sponsor_linked_trn = nct_id) |>
                               select(protocol_sponsor_linked_trn, protocol_sponsor_code)
 
-results_sponsor_linked_ids <- sponsor_linked_ids %>%
-                             rename(results_sponsor_code = id_value) %>%
-                             rename(results_sponsor_linked_trn = nct_id) %>%
+results_sponsor_linked_ids <- sponsor_linked_ids |>
+                             rename(results_sponsor_code = id_value) |>
+                             rename(results_sponsor_linked_trn = nct_id) |>
                              select(results_sponsor_code, results_sponsor_linked_trn)
 
 # Left join in sponsor linked TRNs from protocol data
-TRN_registry_data <- left_join(TRN_registry_data, protocol_sponsor_linked_ids, by = "protocol_sponsor_code") %>%
+TRN_registry_data <- left_join(TRN_registry_data, protocol_sponsor_linked_ids, by = "protocol_sponsor_code") |>
                     relocate(protocol_sponsor_linked_trn, .after = protocol_sponsor_code)
 
 # Left join in sponsor linked TRNs from results data
-TRN_registry_data <- left_join(TRN_registry_data, results_sponsor_linked_ids, by = "results_sponsor_code") %>%
+TRN_registry_data <- left_join(TRN_registry_data, results_sponsor_linked_ids, by = "results_sponsor_code") |>
                     relocate(results_sponsor_linked_trn, .after = results_sponsor_code)
 
 ## Save as RDS
