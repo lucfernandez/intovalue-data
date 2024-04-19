@@ -23,7 +23,7 @@ publications <- read_rds("publications_final.rds")
 # Load list of IV trials
 dir_processed <- here("data", "processed")
 trials <- read_csv(path(dir_processed, "trials.csv"))
-trials <- trials %>%
+trials <- trials |>
           select(id)
 
 
@@ -446,19 +446,19 @@ trn_trn <- unique(trn_trn) # if this is doing anything it means something isn't 
 ## Adding so called 'meta booleans' to make it easier to assign priorities to rows for manual validation stage
 
 # Boolean for whether at least one of the registries is EU
-trn_trn <- trn_trn %>%
+trn_trn <- trn_trn |>
            mutate(at_least_one_EU = if_else((registry1 == "EudraCT" | registry2 == "EudraCT"), TRUE, FALSE))
 
 # Boolean for whether at least one of the TRNs is in IV
-trn_trn <- trn_trn %>%
+trn_trn <- trn_trn |>
            mutate(at_least_one_IV = if_else((trn1 %in% trials | trn2 %in% trials$id), TRUE, FALSE))
 
 # Boolean for at least one of the pub booleans being TRUE
-trn_trn <- trn_trn %>%
+trn_trn <- trn_trn |>
            mutate(at_least_one_pub = if_else(!is.na(pub_si) | !is.na(pub_abs) | !is.na(pub_ft), TRUE, FALSE))
 
 # Boolean for at least one of the sponsor protocol ID booleans being TRUE
-trn_trn <- trn_trn %>%
+trn_trn <- trn_trn |>
            mutate(at_least_one_sponsor_match = if_else(!is.na(is_match_protocol_sponsor_protocol_id) | !is.na(is_match_results_sponsor_protocol_id), TRUE, FALSE))
 
 
@@ -468,7 +468,7 @@ trn_trn <- trn_trn %>%
 # Need to account for NA values here for non 'meta-booleans'
 # Use coalesce() function: returns the first non-NA value in a list. Eg.) coalesce(NA, FALSE) == FALSE ; coalesce(NA, NA, 7) == 7
 
-trn_trn <- trn_trn %>%
+trn_trn <- trn_trn |>
           mutate(priority = case_when(
 
             # Priority 1
