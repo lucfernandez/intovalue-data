@@ -17,13 +17,16 @@ library(cli)
 dir_raw <- here("data", "raw")
 dir_processed <- here("data", "processed")
 
-# Download IV TRNs and titles. German full titles are here but the NCT titles here will need to be replaced by what's in studies.csv
+# Get IntoValue TRNs and titles. For trials registered in ClinicalTrials.gov, this is the 'brief_title'. See IntoValue codebook: https://github.com/maia-sh/intovalue-data/blob/main/data/processed/codebook.csv
+# Trials in the DRKS already have their full titles linked here, but ClinicalTrials.gov trials will need to get their full titles from 'studies.csv'
 trials <- read_csv(path(dir_processed, "trials.csv"))
 
 # Download EU trial data dump, includes TRNs and full titles
 EU_dump <- read_csv(path(dir_raw, "euctr_euctr_dump-2024-02-03-054239.csv"))
 
-# Download studies.csv, which includes the 'official title' field for all NCTs
+# ClinicalTrials.gov includes a brief_title and an official_title.
+# For title matching with trials in ClinicalTrials.gov, we use the official_title per previous work (see https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0193088).
+# We have previously downloaded the official_title of ClinicalTrials.gov trials from AACT (https://zenodo.org/records/7590083) and integrate them. DRKS titles remain unchanged.
 studies <- read_csv(path(dir_raw,"studies.csv" ))
 
 ##########################################################
@@ -42,7 +45,7 @@ NCT_full_titles <- studies |>
 IV_ids <- rename(IV_ids, brief = title)
 NCT_full_titles <- rename(NCT_full_titles, official = title)
 
-# If there is no official title available in clinicaltrials.gov, the brief title will be used as the 'title'
+# If there is no official title available in ClinicalTrials.gov, the brief title will be used as the 'title'
 IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") |>
   mutate(title = ifelse(is.na(official), brief, official)) |>
   select(-brief, -official)
@@ -61,17 +64,16 @@ IV_updated_titles <- IV_updated_titles |>
 EU_ids <- EU_dump |>
           select(eudract_number,
                  member_state_concerned,
-                 national_competent_authority,
                  full_title_of_the_trial)
 
-EU_ids <- rename(EU_ids, id = eudract_number, state = member_state_concerned, title = full_title_of_the_trial, authority = national_competent_authority)
+EU_ids <- rename(EU_ids, id = eudract_number, state = member_state_concerned, title = full_title_of_the_trial)
 
-# Filter out EU trials which dont have 'Germany' listed in member_state_concerned AND national_competent authority
-# Yields table with 13068 unique trials which mention Germany in both of these fields
+# Filter out EU trials which dont have 'Germany' listed in member_state_concerned
+# Yields table with 13068 unique trials which mention Germany in this field
 # Can filter however we want here.
 
 EU_only_German <- EU_ids |>
-                  filter(grepl('Germany', state) & grepl('Germany', authority))
+                  filter(grepl('Germany', state))
 
 # Process EU titles
 EU_only_German <- EU_only_German |> select(id,title) |>
