@@ -39,11 +39,10 @@ IV_ids <- trials |>
 NCT_full_titles <- studies |>
   select(nct_id, official_title) |>
   rename(id = nct_id) |>
-  rename(title = official_title)
+  rename(official = official_title)
 
-# Update NCT titles in IV_ids, leaving DRKS titles intact
-IV_ids <- rename(IV_ids, brief = title)
-NCT_full_titles <- rename(NCT_full_titles, official = title)
+# Update NCT titles in IV_ids
+IV_ids <- rename(IV_ids, brief = title) # Note that the DRKS titles in IV_ids are NOT brief. This column name refers to the brief titles of ClinicalTrials.gov trials. The DRKS titles will not be replaced when the brief titles of NCT trials are replaced with their full titles
 
 # If there is no official title available in ClinicalTrials.gov, the brief title will be used as the 'title'
 IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") |>
@@ -64,7 +63,8 @@ IV_updated_titles <- IV_updated_titles |>
 EU_ids <- EU_dump |>
           select(eudract_number,
                  member_state_concerned,
-                 full_title_of_the_trial)
+                 full_title_of_the_trial,
+                 sponsors)
 
 EU_ids <- rename(EU_ids, id = eudract_number, state = member_state_concerned, title = full_title_of_the_trial)
 
@@ -112,7 +112,7 @@ start_time <- Sys.time()
     !is.na(id)
   ) |>
   distinct(
-    #id, euctr_id, # if we want to preserve all EUCTR crossreg for given trial
+    # euctr_id, # we want to preserve all EUCTR crossreg for given trial
     id,
     .keep_all = TRUE
   ) |>
