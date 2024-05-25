@@ -23,7 +23,7 @@ pubs_supplementary_info <- trials %>%
 # pubs_with_crossreg will give us information about WHERE in the publication the cross-registered TRNs can be found
 pubs_from_crossreg <- cross_registrations %>%
   filter(is_crossreg_secondary_id == TRUE | is_crossreg_abstract == TRUE | is_crossreg_ft == TRUE) %>% # filter out all cross-regs that aren't linked by a pub
-  select(id, pmid, doi, crossreg_trn, crossreg_registry, is_crossreg_secondary_id, is_crossreg_abstract, is_crossreg_ft) %>%
+  select(!is_crossreg_reg) %>%
   unique()
 
 ##############################################################################################
