@@ -28,12 +28,36 @@ studies <- read_csv(path(dir_raw,"studies.csv" ))
 
 ##########################################################
 
-# extract IDs and Titles, and whatever information we want to filter by here for the EU trials.
-# Since IV trials don't have country info like EU trials, we will just get the ID and title here
+# Extract IDs and process titles for IV trials first
 IV_ids <- trials |>
           select(id,title) |>
           unique()
 
+NCT_full_titles <- studies |>
+  select(nct_id, official_title) |>
+  rename(id = nct_id) |>
+  rename(title = official_title)
+
+# Update NCT titles in IV_ids, leaving DRKS titles intact
+IV_ids <- rename(IV_ids, brief = title)
+NCT_full_titles <- rename(NCT_full_titles, official = title)
+
+# If there is no official title available in clinicaltrials.gov, the brief title will be used as the 'title'
+IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") |>
+  mutate(title = ifelse(is.na(official), brief, official)) |>
+  select(-brief, -official)
+
+# Process IV titles to make compatible with title matching algorithm
+IV_updated_titles <- IV_updated_titles |>
+  mutate(title_processed = tolower(title) |>
+           stringr::str_squish() |> # remove whitespace at start and end, as well as any "\t" whitespace characters
+           stringr::str_remove_all("[:punct:]") |>
+           stringr::str_remove_all(" ")) |>
+  select(id, title, title_processed)
+
+###########################################################
+
+# Extract EU IDs and country data (for filtering), plus process EU titles to be used in title matching algorithm
 EU_ids <- EU_dump |>
           select(eudract_number,
                  member_state_concerned,
@@ -42,19 +66,6 @@ EU_ids <- EU_dump |>
 
 EU_ids <- rename(EU_ids, id = eudract_number, state = member_state_concerned, title = full_title_of_the_trial, authority = national_competent_authority)
 
-NCT_full_titles <- studies |>
-                  select(nct_id, official_title) |>
-                  rename(id = nct_id) |>
-                  rename(title = official_title)
-
-# Update NCT titles in IV_ids, leaving DRKS titles intact
-IV_ids <- rename(IV_ids, brief = title)
-NCT_full_titles <- rename(NCT_full_titles, official = title)
-
-IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") |>
-                     mutate(title = ifelse(is.na(official), brief, official)) |>
-                     select(-brief, -official)
-
 # Filter out EU trials which dont have 'Germany' listed in member_state_concerned AND national_competent authority
 # Yields table with 13068 unique trials which mention Germany in both of these fields
 # Can filter however we want here.
@@ -62,24 +73,14 @@ IV_updated_titles <- left_join(IV_ids, NCT_full_titles, by = "id") |>
 EU_only_German <- EU_ids |>
                   filter(grepl('Germany', state) & grepl('Germany', authority))
 
-##########################################################
-
-# Process titles a bit before title matching
-
-IV_updated_titles <- IV_updated_titles |>
-                               mutate(title_processed = tolower(title) |>
-                               stringr::str_squish() |> # remove whitespace at start and end, as well as any "\t" whitespace characters
-                               stringr::str_remove_all("[:punct:]") |>
-                               stringr::str_remove_all(" ")) |>
-                               select(id, title, title_processed)
-
+# Process EU titles
 EU_only_German <- EU_only_German |> select(id,title) |>
-                                     tidyr::drop_na(title) |>
-                                     distinct(id, title,.keep_all = TRUE) |>
-                                     mutate(title_processed = tolower(title) |>
-                                     stringr::str_squish() |> # remove whitespace at start and end, as well as any "\t" whitespace characters
-                                     stringr::str_remove_all("[:punct:]") |>
-                                     stringr::str_remove_all(" "))
+  tidyr::drop_na(title) |>
+  distinct(id, title,.keep_all = TRUE) |>
+  mutate(title_processed = tolower(title) |>
+           stringr::str_squish() |> # remove whitespace at start and end, as well as any "\t" whitespace characters
+           stringr::str_remove_all("[:punct:]") |>
+           stringr::str_remove_all(" "))
 
 ##########################################################
 ## Title matching (from 02_cross-reg-title-matching.R)
@@ -88,13 +89,14 @@ EU_only_German <- EU_only_German |> select(id,title) |>
 # with elements of table if their distance is larger than maxDist)
 DISTANCE <- 7
 
-
 ## The below takes about 3.5 hours on my baseline 2020 MacBook Air
 ## Let it run, it takes a while!!
 
 start_time <- Sys.time()
 
 # use amatch function to find title matches
+# Default method used for matching. Documentation for amatch function:
+# https://www.rdocumentation.org/packages/stringdist/versions/0.9.12/topics/amatch
  title_matches <- cbind(
   euctr_title_tm = EU_only_German$title,
   euctr_id = EU_only_German$id,
