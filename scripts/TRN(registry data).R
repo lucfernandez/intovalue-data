@@ -77,8 +77,9 @@ EU_protocol_clean <- EU_protocol_dump |>
                             protocol_sponsor_code = sponsor_s_protocol_code_number)
 
 # Columns we want cleaned by Maia's script
-# got rid of WHO number column (who_universal_trial_reference_number_utrn) as Maia said to keep it separate, plus the well formatted numbers here still return NA with which_registry()
-# which will mess up our logic
+# WHO UTN is not cleaned, since it is not a registration number:
+# The aim of the Universal Trial Number (UTN) is to facilitate the unambiguous identification of clinical trials.
+# The UTN is not a registration number. (see https://www.who.int/clinical-trials-registry-platform/unambiguous-trial-identification/the-universal-trial-number-(utn))
 
 protocol_columns_to_clean <- c("isrctn_number",
                                "nct_number",
@@ -106,6 +107,10 @@ for (col in protocol_columns_to_clean) {
     trn <- EU_protocol_clean[i, col]
 
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
+    # The clean_trn() function is from the ctregistries package (https://github.com/maia-sh/ctregistries)
+    # clean_trn() takes a single messy TRN as input. Currently, it is able to clean TRNs from ANZCTR, CT.gov, DRKS, ISRCTN, JapicCTI, EudraCT, NTR, and PACTR
+    # It returns either single clean TRN, an error if the TRN is not in either of the above registries, or NA if the TRN is NA.
+
     cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
     # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
@@ -122,11 +127,21 @@ for (col in protocol_columns_to_clean) {
       EU_protocol_clean[[unclean_col]][i] <- NA
     }
   }
-  # Cleaned TRNs are placed back in the column they belong
-  EU_protocol_clean[, col] <- unlist(cleaned_trns)
 
-  # Update progress bar
-  cli_progress_update()
+  # Sanity check that cleaned_trns vector has the same length as number of rows in column we want to merge it with
+  rows_EU_clean = nrow(EU_protocol_clean[, col])
+  length_cleaned = length(cleaned_trns)
+
+  if(rows_EU_clean == length_cleaned) {
+    # Cleaned TRNs are placed back in the column they belong
+    EU_protocol_clean[, col] <- unlist(cleaned_trns)
+
+    # Update progress bar
+    cli_progress_update()
+  }
+  else {
+    print("The cleaned vector is not of the same length as the row we want to combine it with")
+  }
 }
 
 # Terminate progress bar
@@ -176,7 +191,8 @@ clean_nct_number <- function(string) {
   }
 }
 
-# Apply the cleaning functions to the unclean_ids column
+# Apply the cleaning functions to the unclean 'other_ids' column, as
+# all the NCT and DRKS numbers from the other_ids column that were uncleanable were shunted here after the first cleaning step
 EU_protocol_clean$other_identifiers_drks <- sapply(EU_protocol_clean$other_ids_protocol_unclean, clean_drks_number)
 EU_protocol_clean$other_identifiers_nct <- sapply(EU_protocol_clean$other_ids_protocol_unclean, clean_nct_number)
 
