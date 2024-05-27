@@ -104,7 +104,7 @@ for (col in protocol_columns_to_clean) {
   # 'trn' is the id in each row currently being cleaned
   for (i in 1:nrow(EU_protocol_clean)) {
 
-    trn <- EU_protocol_clean[i, col]
+    trn <- EU_protocol_clean[[i, col]]
 
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
     # The clean_trn() function is from the ctregistries package (https://github.com/maia-sh/ctregistries)
@@ -243,7 +243,7 @@ for (col in results_columns_to_clean) {
   # 'trn' is the id in each row currently being cleaned
   for (i in 1:nrow(EU_results_clean)) {
 
-    trn <- EU_results_clean[i, col]
+    trn <- EU_results_clean[[i, col]]
 
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
     cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
@@ -263,11 +263,20 @@ for (col in results_columns_to_clean) {
     }
   }
 
-  # Cleaned TRNs are placed back in the column they belong
-  EU_results_clean[, col] <- unlist(cleaned_trns)
+  # Sanity check that cleaned_trns vector has the same length as number of rows in column we want to merge it with
+  rows_EU_clean = nrow(EU_results_clean[, col])
+  length_cleaned = length(cleaned_trns)
 
-  # Update progress bar
-  cli_progress_update()
+  if(rows_EU_clean == length_cleaned) {
+    # Cleaned TRNs are placed back in the column they belong
+    EU_results_clean[, col] <- unlist(cleaned_trns)
+
+    # Update progress bar
+    cli_progress_update()
+  }
+  else {
+    print("The cleaned vector is not of the same length as the row we want to combine it with")
+  }
 }
 
 # Terminate progress bar
