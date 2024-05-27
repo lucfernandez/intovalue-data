@@ -197,11 +197,18 @@ EU_protocol_clean$other_identifiers_drks <- sapply(EU_protocol_clean$other_ids_p
 EU_protocol_clean$other_identifiers_nct <- sapply(EU_protocol_clean$other_ids_protocol_unclean, clean_nct_number)
 
 # Add new cleaned values to the existing values in other_ids in a semicolon-separated list
-EU_protocol_clean$other_ids <- ifelse(
-  !is.na(EU_protocol_clean$other_identifiers_nct) | !is.na(EU_protocol_clean$other_identifiers_drks),
-  paste(EU_protocol_clean$other_identifiers_nct, EU_protocol_clean$other_identifiers_drks, sep = "; "),
-  EU_protocol_clean$other_ids
-)
+EU_protocol_clean <- EU_protocol_clean |>
+  mutate(
+    other_ids = case_when(
+      !is.na(other_identifiers_nct) & !is.na(other_identifiers_drks) ~ paste(other_ids, other_identifiers_nct, other_identifiers_drks, sep = ";"),
+      !is.na(other_identifiers_nct) ~ paste(other_ids, other_identifiers_nct, sep = ";"),
+      !is.na(other_identifiers_drks) ~ paste(other_ids, other_identifiers_drks, sep = ";"),
+      TRUE ~ other_ids
+    )
+  ) |>
+  mutate(
+    other_ids = na_if(other_ids, "NA")
+  )
 
 # Remove unnecessary columns
 EU_protocol_clean <- EU_protocol_clean[, !(names(EU_protocol_clean) %in% c("other_identifiers_nct", "other_identifiers_drks"))]
