@@ -429,19 +429,32 @@ EU_clean$combined_trns_reg <- sapply(EU_clean$combined_trns_reg, function(trns) 
 # dropping unnecessary columns
 EU_clean <- subset(EU_clean, select = -c(trns_reg_protocol, trns_reg_results))
 
-# renaming and reordering columns to make binding easier
-EU_clean <- rename(EU_clean, trns_reg = combined_trns_reg) |>
-            relocate(trns_reg, .after = protocol_sponsor_code) |>
-            relocate(is_primary_IV_id, .after = trns_reg)
+# separate out unclean columns and store them in the EU_unclean data frame
+EU_unclean <- EU_clean |>
+  select(id,
+         isrctn_number_protocol_unclean,
+         isrctn_number_results_unclean,
+         nct_number_protocol_unclean,
+         nct_number_results_unclean,
+         other_ids_protocol_unclean,
+         other_ids_results_unclean
+  )
+
+# keep only what you need in the EU clean data frame, and organise columns in order you want
+EU_clean <- EU_clean |>
+  select(id,
+         protocol_sponsor_code,
+         results_sponsor_code,
+         combined_trns_reg,
+         is_primary_IV_id,
+         who_utn_combined
+  ) |>
+  rename(
+    trns_reg = combined_trns_reg
+  )
 
 # editing IV_clean to make binding possible
-IV_clean <- rename(IV_clean, who_utn_combined = who_utn) |>
-           mutate(isrctn_number_protocol_unclean = NA) |>
-           mutate(nct_number_protocol_unclean = NA) |>
-           mutate(other_ids_protocol_unclean = NA) |>
-           mutate(nct_number_results_unclean = NA) |>
-           mutate(isrctn_number_results_unclean = NA) |>
-           mutate(other_ids_results_unclean = NA)
+IV_clean <- rename(IV_clean, who_utn_combined = who_utn)
 
 
 ##########################################################
@@ -461,6 +474,11 @@ TRN_registry_data <- TRN_registry_data |>
 # Now in one final addition of information, we will join in ids.csv
 # See if id_value field in that table matches with our sponsor_s_protocol_code_number field. If they match, bring in the value from the nct_id field in ids.csv table
 
+# Remove remaining duplicates in 'ids.csv' table
+sponsor_linked_ids <- sponsor_linked_ids |>
+  select(-id_type) |>
+  distinct(nct_id, id_value)
+
 protocol_sponsor_linked_ids <- sponsor_linked_ids |>
                               rename(protocol_sponsor_code = id_value) |>
                               rename(protocol_sponsor_linked_trn = nct_id) |>
@@ -478,6 +496,11 @@ TRN_registry_data <- left_join(TRN_registry_data, protocol_sponsor_linked_ids, b
 # Left join in sponsor linked TRNs from results data
 TRN_registry_data <- left_join(TRN_registry_data, results_sponsor_linked_ids, by = "results_sponsor_code") |>
                     relocate(results_sponsor_linked_trn, .after = results_sponsor_code)
+
+# Final handling of all empty cells or cells with value "NA" ; values set to logical NA
+TRN_registry_data <- TRN_registry_data |>
+                     mutate(trns_reg = na_if(trns_reg, "")) |>
+                     mutate(who_utn_combined = na_if(who_utn_combined, ""))
 
 ## Save as RDS ( will overwrite previous version)
 saveRDS(TRN_registry_data, "data/TRN(registry data).rds" )
