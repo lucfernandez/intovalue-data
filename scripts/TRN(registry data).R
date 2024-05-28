@@ -191,6 +191,17 @@ clean_nct_number <- function(string) {
   }
 }
 
+# Function to identify and clean ISRCTN stragglers in the isrctn_number_protocol_unclean column
+clean_isrctn_number <- function(string) {
+
+  if (grepl("^\\d{8}$", string)) {
+    return(paste0("ISRCTN", string)) # return ISRCTN with prefix attached if pattern of 8 integers with no spaces matches
+  }
+  else {
+    return(NA) # return NA if no match is found (returning NA b/c we're storing the results of this function in a new column, not just overwriting unclean data with an NA)
+  }
+}
+
 # Apply the cleaning functions to the unclean 'other_ids' column, as
 # all the NCT and DRKS numbers from the other_ids column that were uncleanable were shunted here after the first cleaning step
 EU_protocol_clean$other_identifiers_drks <- sapply(EU_protocol_clean$other_ids_protocol_unclean, clean_drks_number)
@@ -210,8 +221,26 @@ EU_protocol_clean <- EU_protocol_clean |>
     other_ids = na_if(other_ids, "NA")
   )
 
+# Apply ISRCTN cleaning function to isrctn_number_protocol_unclean column, store results in new column (isrctn_stragglers), then add to column isrctn_number if isrctn_stragglers is not NA
+EU_protocol_clean$isrctn_stragglers <- sapply(EU_protocol_clean$isrctn_number_protocol_unclean, clean_isrctn_number)
+
+# Adding new values to isrctn_number column
+EU_protocol_clean <- EU_protocol_clean |>
+  mutate(
+    isrctn_number = case_when(
+      !is.na(isrctn_stragglers) ~ isrctn_stragglers,
+      TRUE ~ isrctn_number
+    )
+  ) |>
+  mutate(
+    isrctn_number = na_if(isrctn_number, "NA")
+  )
+
+
+
+
 # Remove unnecessary columns
-EU_protocol_clean <- EU_protocol_clean[, !(names(EU_protocol_clean) %in% c("other_identifiers_nct", "other_identifiers_drks"))]
+EU_protocol_clean <- EU_protocol_clean[, !(names(EU_protocol_clean) %in% c("other_identifiers_nct", "other_identifiers_drks", "isrctn_stragglers"))]
 
 
 ##########################################################
