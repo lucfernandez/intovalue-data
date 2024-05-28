@@ -383,7 +383,13 @@ EU_clean <- merge(EU_protocol_clean, EU_results_clean, by = "id", all.x = TRUE)
 
 # Unite WHO UTN columns from the EU protocols and results tables
 
-EU_clean <- unite(EU_clean, who_utn_combined, who_utn_number_protocol, who_utn_number, sep = ";")
+EU_clean <- unite(EU_clean,
+                  who_utn_combined,
+                  who_utn_number_protocol,
+                  who_utn_number,
+                  sep = ";",
+                  na.rm = TRUE)
+
 EU_clean$combined_trns_reg <- NA
 
 # concatenate 'trns_reg' values from both tables together
@@ -414,7 +420,7 @@ for (i in 1:nrow(EU_clean)) {
 EU_clean$combined_trns_reg <- sapply(EU_clean$combined_trns_reg, function(trns) {
   if (!is.na(trns)) {
     unique_trns <- unique(unlist(strsplit(trns, ";")))
-    return(paste(unique_trns, collapse = ";"))
+    return(paste(sort(unique_trns), collapse = ";"))
   } else {
     return(NA)
   }
