@@ -202,8 +202,37 @@ clean_isrctn_number <- function(string) {
   }
 }
 
+# Dutch straggler formats:
+
+# DutchTrialRegister:NL8152
+# DutchTrialRegister(LTR):NL5458
+# NederlandTrilaRegister:NTR4269
+# NationalTrialregistration:NTR3912
+# NederlandsTrialregister:NL3011
+# NederlandsTrailRegister:NL4187/NTR4337
+# EffectofDelmopinolontreatmentofinflammation:NL5159
+# ECnumber:MEC-2013-310,NederlandTrilaRegister:NTR4269,CCMOdossiernumber:NL41789.078.13
+
+# Function to identify and clean Dutch stragglers
+clean_nederlands_number <- function(string) {
+
+  matches <- regmatches(string, gregexpr("(NL\\d+|NTR\\d+)", string))
+
+  if (length(matches) > 0 && length(unlist(matches)) > 0) {
+    cleaned_value <- paste(unlist(matches), collapse = ";")
+    return(cleaned_value)
+  } else {
+    return(string)  # Return the original value if no matches are found
+  }
+}
+
+# First, run Dutch cleaning function on other_ids column, as these slip through to the supposedly clean column while
+# actually still being dirty
+EU_protocol_clean$other_ids <- sapply(EU_protocol_clean$other_ids, clean_nederlands_number)
+
 # Apply the cleaning functions to the unclean 'other_ids' column, as
-# all the NCT and DRKS numbers from the other_ids column that were uncleanable were shunted here after the first cleaning step
+# all the NCT and DRKS numbers from the other_ids column that were uncleanable were shunted here after the first cleaning step.
+
 EU_protocol_clean$other_identifiers_drks <- sapply(EU_protocol_clean$other_ids_protocol_unclean, clean_drks_number)
 EU_protocol_clean$other_identifiers_nct <- sapply(EU_protocol_clean$other_ids_protocol_unclean, clean_nct_number)
 
@@ -221,7 +250,7 @@ EU_protocol_clean <- EU_protocol_clean |>
     other_ids = na_if(other_ids, "NA")
   )
 
-# Apply ISRCTN cleaning function to isrctn_number_protocol_unclean column, store results in new column (isrctn_stragglers), then add to column isrctn_number if isrctn_stragglers is not NA
+# Finally, apply ISRCTN cleaning function to isrctn_number_protocol_unclean column, store results in new column (isrctn_stragglers), then add to column isrctn_number if isrctn_stragglers is not NA
 EU_protocol_clean$isrctn_stragglers <- sapply(EU_protocol_clean$isrctn_number_protocol_unclean, clean_isrctn_number)
 
 # Adding new values to isrctn_number column
@@ -235,9 +264,6 @@ EU_protocol_clean <- EU_protocol_clean |>
   mutate(
     isrctn_number = na_if(isrctn_number, "NA")
   )
-
-
-
 
 # Remove unnecessary columns
 EU_protocol_clean <- EU_protocol_clean[, !(names(EU_protocol_clean) %in% c("other_identifiers_nct", "other_identifiers_drks", "isrctn_stragglers"))]
@@ -320,31 +346,6 @@ cli_progress_done()
 
 ##########################################################
 ## Clean the Dutch stragglers from EU_results_clean not caught by algorithm and put in trns_reg
-
-# Dutch straggler formats:
-
-# DutchTrialRegister:NL8152
-# DutchTrialRegister(LTR):NL5458
-# NederlandTrilaRegister:NTR4269
-# NationalTrialregistration:NTR3912
-# NederlandsTrialregister:NL3011
-# NederlandsTrailRegister:NL4187/NTR4337
-# EffectofDelmopinolontreatmentofinflammation:NL5159
-# ECnumber:MEC-2013-310,NederlandTrilaRegister:NTR4269,CCMOdossiernumber:NL41789.078.13
-
-# Function to identify and clean Dutch stragglers
-clean_nederlands_number <- function(string) {
-
-  matches <- regmatches(string, gregexpr("(NL\\d+|NTR\\d+)", string))
-
-  if (length(matches) > 0 && length(unlist(matches)) > 0) {
-    cleaned_value <- paste(unlist(matches), collapse = ";")
-    return(cleaned_value)
-  } else {
-    return(string)  # Return the original value if no matches are found
-  }
-}
-
 # Apply the cleaning functions to the other_ids column
 EU_results_clean$other_ids <- sapply(EU_results_clean$other_ids, clean_nederlands_number)
 
