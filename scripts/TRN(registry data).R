@@ -34,6 +34,9 @@ EU_results_dump <- EU_results_dump[EU_results_dump$trial_id != "2006-005253-30",
 
 ## Download ids table in ctgov folder from zenodo ## MAKE INTO URL DOWNLOAD
 # will be left joined by sponsor_s_protocol number to see if we get any more extra TRNs
+# The IDs in this table are identifiers or numbers other than the NCT number that are assigned to a clinical study by the study's sponsor, funders, or others.
+# These numbers may include unique identifiers from other trial registries and National Institutes of Health grant numbers.
+# For brevity, they will be stored in sponsor_linked_ids, since study sponsor ID numbers are of the most interest to us here
 
 sponsor_linked_ids <- read_csv(path(dir_raw, "ids.csv"))
 ##########################################################
@@ -351,9 +354,7 @@ EU_results_clean$other_ids <- sapply(EU_results_clean$other_ids, clean_nederland
 
 ##########################################################
 
-# merge all connected TRNs into "trns_reg" in both protocol and results EU tables, like in IV_clean, separate protocol number, and add is_primary_IV_id boolean to see if
-# any of the EU trials are also in IV (none are)
-
+# merge all connected TRNs into "trns_reg" in both protocol and results EU tables, like in IV_clean, separate protocol number, and add is_primary_IV_id boolean to record which TRNs are also in Into Value
 EU_protocol_clean <- unite(EU_protocol_clean,
                           "trns_reg_protocol",
                           isrctn_number,
@@ -472,7 +473,8 @@ TRN_registry_data <- TRN_registry_data |>
 
 ##########################################################
 # Now in one final addition of information, we will join in ids.csv
-# See if id_value field in that table matches with our sponsor_s_protocol_code_number field. If they match, bring in the value from the nct_id field in ids.csv table
+# See if id_value field in that table matches with our protocol_sponsor_code field or our results_sponsor_code field. If they match, bring in the value from the nct_id field in ids.csv table.
+
 
 # Remove remaining duplicates in 'ids.csv' table
 sponsor_linked_ids <- sponsor_linked_ids |>
