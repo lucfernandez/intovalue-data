@@ -46,9 +46,9 @@ pubs_with_info <- pubs_from_crossreg|>
       lapply(function(x) x[x != "NA"]) |> # remove elements of lists that are equal to "NA" character
       sapply(function(x) paste(x, collapse = ";")) # collapse elements back into semicolon-separated strings
       ifelse(cleaned == "" | cleaned == "NA", NA, cleaned) # if result is an empty string or is still "NA", replace with NA value
-  })) |>
-
+  })) # |>
+   # Consider uncommenting this final section in the future to capture any miscellaneous TRNs linked to pubs through methods not captured above
    # Add final trns_other column for miscellaneous TRNs
-  add_column(trns_other = NA)
+   # add_column(trns_other = NA)
 
 saveRDS(pubs_with_info, "data/publications_final.rds")
