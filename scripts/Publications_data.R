@@ -14,15 +14,16 @@ dir_processed <- here("data", "processed")
 
 cross_registrations <- read_rds(path(dir_processed, "trn", "cross-registrations.rds"))
 
-# pubs_with_crossreg will give us information about WHERE in the publication the cross-registered TRNs can be found
-pubs_from_crossreg <- cross_registrations %>%
+# filter for crossregs identified based on publication
+# crossreg_from_pubs will give us information about WHERE in the publication the cross-registered TRNs can be found
+crossreg_from_pubs <- cross_registrations %>%
   filter(is_crossreg_secondary_id == TRUE | is_crossreg_abstract == TRUE | is_crossreg_ft == TRUE) %>% # filter out all cross-regs that aren't linked by a pub
   select(!is_crossreg_reg) %>%
   unique()
 
 ##############################################################################################
 
-pubs_with_info <- pubs_from_crossreg|>
+pubs_with_info <- crossreg_from_pubs |>
   rename(trns_si = is_crossreg_secondary_id,
          trns_abs = is_crossreg_abstract,
          trns_ft = is_crossreg_ft,
