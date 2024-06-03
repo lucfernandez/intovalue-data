@@ -52,4 +52,4 @@ pubs_with_info <- crossreg_from_pubs |>
    # Add final trns_other column for miscellaneous TRNs
    # add_column(trns_other = NA)
 
-saveRDS(pubs_with_info, "data/publications_final.rds")
+saveRDS(pubs_with_info, "data/cross-registrations/publications_final.rds")

@@ -23,17 +23,22 @@ trials <- read_csv(path(dir_processed, "trials.csv"))
 cross_registrations <- read_rds(path(dir_processed, "trn", "cross-registrations.rds"))
 
 ## download EU trial protocol data dump
+# Save in 'intovalue-data/data/raw' to work here
 EU_protocol_dump <- read_csv(path(dir_raw, "euctr_euctr_dump-2024-02-03-054239.csv"))
 
 ## download EU trial results data dump
+# Save in 'intovalue-data/data/raw' to work here
 # There is at least one trial that is in EU_results that is NOT in EU_protocol: 2006-005253-30
 # In lieu of a better solution, I'll just delete this row from EU_results for now.
+
 
 EU_results_dump <- read_csv(path(dir_raw, "euctr_data_quality_results_scrape_feb_2024.csv" ))
 EU_results_dump <- EU_results_dump[EU_results_dump$trial_id != "2006-005253-30", ]
 
-## Download ids table in ctgov folder from zenodo ## MAKE INTO URL DOWNLOAD
+## Download 'ids.csv' table in ctgov folder from Zenodo: https://zenodo.org/records/7590083
+# Should be saved in 'intovalue-data/data/raw' to work with script
 # will be left joined by sponsor_s_protocol number to see if we get any more extra TRNs
+
 # The IDs in this table are identifiers or numbers other than the NCT number that are assigned to a clinical study by the study's sponsor, funders, or others.
 # These numbers may include unique identifiers from other trial registries and National Institutes of Health grant numbers.
 # For brevity, they will be stored in sponsor_linked_ids, since study sponsor ID numbers are of the most interest to us here
@@ -505,4 +510,5 @@ TRN_registry_data <- TRN_registry_data |>
                      mutate(who_utn_combined = na_if(who_utn_combined, ""))
 
 ## Save as RDS ( will overwrite previous version)
-saveRDS(TRN_registry_data, "data/TRN(registry data).rds" )
+# Saves in 'intovalue-data/data'
+saveRDS(TRN_registry_data, "data/cross-registrations/TRN(registry data).rds" )
