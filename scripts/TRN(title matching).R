@@ -21,13 +21,16 @@ dir_processed <- here("data", "processed")
 # Trials in the DRKS already have their full titles linked here, but ClinicalTrials.gov trials will need to get their full titles from 'studies.csv'
 trials <- read_csv(path(dir_processed, "trials.csv"))
 
-# Download EU trial data dump, includes TRNs and full titles
-EU_dump <- read_csv(path(dir_raw, "euctr_euctr_dump-2024-02-03-054239.csv"))
+# Download EU trial protocol data dump, includes TRNs and full titles
+# Save in 'intovalue-data/data/raw/registries/euctr' to work here
+EU_dump <- read_csv(path(dir_raw, "registries/euctr/euctr_euctr_dump-2024-02-03-054239.csv"))
 
 # ClinicalTrials.gov includes a brief_title and an official_title.
 # For title matching with trials in ClinicalTrials.gov, we use the official_title per previous work (see https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0193088).
 # We have previously downloaded the official_title of ClinicalTrials.gov trials from AACT (https://zenodo.org/records/7590083) and integrate them. DRKS titles remain unchanged.
-studies <- read_csv(path(dir_raw,"studies.csv" ))
+# # Should be saved in 'intovalue-data/data/raw/registries/ctgov' to work with script
+
+studies <- read_csv(path(dir_raw,"registries/ctgov/studies.csv" ))
 
 ##########################################################
 

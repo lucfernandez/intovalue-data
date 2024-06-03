@@ -12,13 +12,13 @@ library(stringr)
 library(ctregistries)
 
 # Load registry data
-TRN_registry_data <- read_rds("TRN(registry data).rds")
+TRN_registry_data <- read_rds("data/cross-registrations/TRN(registry data).rds")
 
 # Load title matching data
-title_matches <- read_rds("title_matched_7.rds")
+title_matches <- read_rds("data/cross-registrations/title_matched_7.rds")
 
 # Load the publications table once it's ready
-publications <- read_rds("publications_final.rds")
+publications <- read_rds("data/cross-registrations/publications_final.rds")
 
 # Load list of IV trials
 dir_processed <- here("data", "processed")
