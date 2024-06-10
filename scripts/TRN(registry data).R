@@ -122,11 +122,16 @@ for (col in protocol_columns_to_clean) {
 
     cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
-    # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
-    if(cleaned == "Error" | is.na(trn)) {
+    # If trn is NA, skip to next iteration. More efficient, as no time is spent trying to clean rows with nothing to clean
+    if (is.na(trn)) {
+      next
+    }
+
+     # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
+    if(cleaned == "Error") {
       cleaned_trns[[i]] <- NA
       unclean_col <- paste0(col, "_protocol_unclean")
-      EU_protocol_clean[[unclean_col]][i] <- trn # Could be either a garbage number or NA
+      EU_protocol_clean[[unclean_col]][i] <- trn # Would be either a garbage number
     }
 
     # If 'trn' can be cleaned, save it and discard the old TRN
@@ -319,8 +324,14 @@ for (col in results_columns_to_clean) {
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
     cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
+
+    # If trn is NA, skip to next iteration. More efficient, as no time is spent trying to clean rows with nothing to clean
+    if (is.na(trn)) {
+      next
+    }
+
     # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
-    if(cleaned == "Error" | is.na(trn)) {
+    if(cleaned == "Error") {
       cleaned_trns[[i]] <- NA
       unclean_col <- paste0(col, "_results_unclean")
       EU_results_clean[[unclean_col]][i] <- trn # Could be either a garbage number or NA
