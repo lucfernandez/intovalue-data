@@ -118,7 +118,7 @@ for (col in protocol_columns_to_clean) {
     # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
     # The clean_trn() function is from the ctregistries package (https://github.com/maia-sh/ctregistries)
     # clean_trn() takes a single messy TRN as input. Currently, it is able to clean TRNs from ANZCTR, CT.gov, DRKS, ISRCTN, JapicCTI, EudraCT, NTR, and PACTR
-    # It returns either single clean TRN, an error if the TRN is not in either of the above registries, or NA if the TRN is NA.
+    # It returns either single clean TRN, an error if the TRN is not recognised as associated with either of the above registries, or NA if the TRN is NA.
 
     cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
@@ -174,8 +174,8 @@ clean_drks_number <- function(string) {
   if (length(drks_match) < 1) {
     return(NA)
   }
-  else if (length(drks_match[[1]]) > 0) {
-    cleaned_value <- paste0("DRKS", gsub("\\D", "", drks_match[[1]]))
+  else if (length(drks_match) > 0) {
+    cleaned_value <- paste0("DRKS", gsub("\\D", "", drks_match))
     return(cleaned_value)
   } else {
     return(NA)
@@ -192,8 +192,8 @@ clean_nct_number <- function(string) {
   if (length(nct_match) < 1) {
     return(NA)
   }
-  else if (length(nct_match[[1]]) > 0) {
-    cleaned_value <- paste0("NCT", gsub("\\D", "", nct_match[[1]]))
+  else if (length(nct_match) > 0) {
+    cleaned_value <- paste0("NCT", gsub("\\D", "", nct_match))
     return(cleaned_value)
   } else {
     return(NA)
