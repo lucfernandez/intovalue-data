@@ -57,6 +57,7 @@ IV_ids <- trials |>
 
 IV_clean <- cross_registrations |>
   filter(is_crossreg_reg) |>
+  distinct(id, crossreg_trn, .keep_all = TRUE) |>
   group_by(id) |>
   summarize(trns_reg = paste(crossreg_trn, collapse = ";")) |>
   mutate(protocol_sponsor_code = NA) |>
