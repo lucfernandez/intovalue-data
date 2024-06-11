@@ -502,13 +502,11 @@ sponsor_linked_ids <- sponsor_linked_ids |>
 
 protocol_sponsor_linked_ids <- sponsor_linked_ids |>
                               rename(protocol_sponsor_code = id_value) |>
-                              rename(protocol_sponsor_linked_trn = nct_id) |>
-                              select(protocol_sponsor_linked_trn, protocol_sponsor_code)
+                              rename(protocol_sponsor_linked_trn = nct_id)
 
 results_sponsor_linked_ids <- sponsor_linked_ids |>
                              rename(results_sponsor_code = id_value) |>
-                             rename(results_sponsor_linked_trn = nct_id) |>
-                             select(results_sponsor_code, results_sponsor_linked_trn)
+                             rename(results_sponsor_linked_trn = nct_id)
 
 # Left join in sponsor linked TRNs from protocol data
 TRN_registry_data <- left_join(TRN_registry_data, protocol_sponsor_linked_ids, by = "protocol_sponsor_code") |>
