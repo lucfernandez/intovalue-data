@@ -448,6 +448,8 @@ EU_clean$combined_trns_reg <- sapply(EU_clean$combined_trns_reg, function(trns) 
 EU_clean <- subset(EU_clean, select = -c(trns_reg_protocol, trns_reg_results))
 
 # separate out unclean columns and store them in the EU_unclean data frame
+# keep combined WHO numbers here, since they are unnecessary for the TRN-TRN script and cause duplicate rows
+
 EU_unclean <- EU_clean |>
   select(id,
          isrctn_number_protocol_unclean,
@@ -455,7 +457,8 @@ EU_unclean <- EU_clean |>
          nct_number_protocol_unclean,
          nct_number_results_unclean,
          other_ids_protocol_unclean,
-         other_ids_results_unclean
+         other_ids_results_unclean,
+         who_utn_combined
   )
 
 # keep only what you need in the EU clean data frame, and organise columns in order you want
@@ -465,7 +468,6 @@ EU_clean <- EU_clean |>
          results_sponsor_code,
          combined_trns_reg,
          is_primary_IV_id,
-         who_utn_combined
   ) |>
   rename(
     trns_reg = combined_trns_reg
