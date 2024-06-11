@@ -64,9 +64,7 @@ IV_clean <- cross_registrations |>
   mutate(results_sponsor_code = NA) |>
   relocate(protocol_sponsor_code, .before = trns_reg) |>
   relocate(results_sponsor_code, .before = trns_reg) |>
-  mutate(is_primary_IV_id = TRUE) |>
-  mutate(who_utn = NA)
-
+  mutate(is_primary_IV_id = TRUE)
 
 ##########################################################
 
@@ -256,9 +254,16 @@ EU_protocol_clean$other_identifiers_nct <- sapply(EU_protocol_clean$other_ids_pr
 EU_protocol_clean <- EU_protocol_clean |>
   mutate(
     other_ids = case_when(
+
+      # Case where other_ids is NA, don't paste other_ids in, just paste  cleaned values to avoid introducing NAs
+      !is.na(other_identifiers_nct) & !is.na(other_identifiers_drks) & is.na(other_ids) ~ paste(other_identifiers_nct, other_identifiers_drks, sep = ";"),
+      !is.na(other_identifiers_nct) & is.na(other_ids) ~ other_identifiers_nct,
+      !is.na(other_identifiers_drks) & is.na(other_ids) ~ other_identifiers_drks,
+
       !is.na(other_identifiers_nct) & !is.na(other_identifiers_drks) ~ paste(other_ids, other_identifiers_nct, other_identifiers_drks, sep = ";"),
       !is.na(other_identifiers_nct) ~ paste(other_ids, other_identifiers_nct, sep = ";"),
       !is.na(other_identifiers_drks) ~ paste(other_ids, other_identifiers_drks, sep = ";"),
+
       TRUE ~ other_ids
     )
   ) |>
@@ -273,7 +278,8 @@ EU_protocol_clean$isrctn_stragglers <- sapply(EU_protocol_clean$isrctn_number_pr
 EU_protocol_clean <- EU_protocol_clean |>
   mutate(
     isrctn_number = case_when(
-      !is.na(isrctn_stragglers) ~ isrctn_stragglers,
+      !is.na(isrctn_stragglers) & is.na(isrctn_number) ~ isrctn_stragglers,
+      !is.na(isrctn_stragglers) ~ paste(isrctn_number, isrctn_stragglers, sep = ";"),
       TRUE ~ isrctn_number
     )
   ) |>
@@ -476,8 +482,6 @@ EU_clean <- EU_clean |>
     trns_reg = combined_trns_reg
   )
 
-# editing IV_clean to make binding possible
-IV_clean <- rename(IV_clean, who_utn_combined = who_utn)
 
 
 ##########################################################
@@ -521,8 +525,7 @@ TRN_registry_data <- left_join(TRN_registry_data, results_sponsor_linked_ids, by
 
 # Final handling of all empty cells or cells with value "NA" ; values set to logical NA
 TRN_registry_data <- TRN_registry_data |>
-                     mutate(trns_reg = na_if(trns_reg, "")) |>
-                     mutate(who_utn_combined = na_if(who_utn_combined, ""))
+                     mutate(trns_reg = na_if(trns_reg, ""))
 
 ## Save as RDS ( will overwrite previous version)
 # Saves in 'intovalue-data/data'
