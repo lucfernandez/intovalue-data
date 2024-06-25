@@ -159,9 +159,9 @@ trn_trn_pubs <- trn_trn_pubs_long |>
   mutate(trn2 = list(unique(c(trn_si_long, trn_abs_long, trn_ft_long)) |> na.omit())) |>
   unnest_longer(trn2) |>
   group_by(trn1, trn2) |>
-  summarise(pub_si = if_else(any(trn2 == trn_si_long), TRUE, NA),
-            pub_abs = if_else(any(trn2 == trn_abs_long), TRUE, NA),
-            pub_ft = if_else(any(trn2 == trn_ft_long), TRUE, NA)) |>
+  summarise(pub_si = if_else(any(trn2 == trn_si_long), TRUE, FALSE),
+            pub_abs = if_else(any(trn2 == trn_abs_long), TRUE, FALSE),
+            pub_ft = if_else(any(trn2 == trn_ft_long), TRUE, FALSE)) |>
   rowwise() |>
   mutate(trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
          trn2inreg1 = trn2 %in% trn_registries$trn2[trn_registries$trn1 == trn1]) |>
