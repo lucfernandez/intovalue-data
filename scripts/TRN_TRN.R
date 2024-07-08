@@ -50,9 +50,9 @@ trn_registries <- trn_trn_longer |>
 
 # Add information about whether registries reference each other
 trn_trn_tidy <- trn_registries |>
+
   # Check if the current trn1 is mentioned in the registry of the current trn2. If it is, there will be a
   # row in trn_registries where trn1 = current trn2 and trn2 = current trn1
-
   mutate(trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
 
          # trn2inreg1 is TRUE by default. We only know about trn2 because it is listed in the trns_reg field of trn1.
@@ -89,7 +89,7 @@ trn_trn_protocols_tidy <- trn_trn_tidy |>
          registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
                                .default = registry2)
   ) |>
-  ungroup() # why is this ungroup necessary?
+  ungroup()
 
 
 # SECOND go through results_sponsor_linked_trn
@@ -122,16 +122,8 @@ trn_trn_results_tidy <- trn_trn_protocols_tidy |>
 
 # Modify structure of title match table to make it easier to integrate with larger match table
 trn_trn_titles <- title_matches |>
-  filter(id != euctr_id) |>  # filter out self-references
-  rename(trn1 = id, trn2 = euctr_id) |>
-  rowwise() |>
-  mutate(is_title_matched = TRUE,
-         trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
-         # this next test is redundant because of circularity? default to TRUE?
-         trn2inreg1 = TRUE
-  ) |>
-  select(trn1, trn2, trn1inreg2, trn2inreg1, is_title_matched) |>
-  ungroup()
+  filter(id != euctr_id) |>   # filter out self-references
+  select(trn1 = id, trn2 = euctr_id, is_title_matched = has_crossreg_eudract_tm)
 
 # Integrate title matched TRNs
 trn_trn_titles_tidy <- trn_trn_results_tidy |>
@@ -142,7 +134,8 @@ trn_trn_titles_tidy <- trn_trn_results_tidy |>
                                .default = registry1),
          registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
                                .default = registry2)
-  )
+  ) |>
+  ungroup()
 
 ####################################################################################################################
 ## Finally add matches from TRNs found in publications
