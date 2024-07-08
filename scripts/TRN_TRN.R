@@ -82,14 +82,7 @@ trn_trn_protocols <- TRN_registry_data |>
 # Integrate protocol sponsor protocol matches to larger table
 trn_trn_protocols_tidy <- trn_trn_tidy |>
   mutate(is_match_protocol_sponsor_protocol_id = NA) |>
-  rows_upsert(trn_trn_protocols, by = c("trn1", "trn2")) |>
-  rowwise() |>
-  mutate(registry1 = case_when(is.na(registry1) ~ which_registry(trn1),
-                               .default = registry1),
-         registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
-                               .default = registry2)
-  ) |>
-  ungroup()
+  rows_upsert(trn_trn_protocols, by = c("trn1", "trn2"))
 
 
 # SECOND go through results_sponsor_linked_trn
@@ -107,14 +100,7 @@ trn_trn_results <- TRN_registry_data |>
 # Integrate new results matches
 trn_trn_results_tidy <- trn_trn_protocols_tidy |>
   mutate(is_match_results_sponsor_protocol_id = NA) |>
-  rows_upsert(trn_trn_results, by = c("trn1", "trn2")) |>
-  rowwise() |>
-  mutate(registry1 = case_when(is.na(registry1) ~ which_registry(trn1),
-                               .default = registry1),
-         registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
-                               .default = registry2)
-  ) |>
-  ungroup()
+  rows_upsert(trn_trn_results, by = c("trn1", "trn2"))
 
 
 ####################################################################################################################
@@ -128,14 +114,7 @@ trn_trn_titles <- title_matches |>
 # Integrate title matched TRNs
 trn_trn_titles_tidy <- trn_trn_results_tidy |>
   mutate(is_title_matched = NA) |>
-  rows_upsert(trn_trn_titles, by = c("trn1", "trn2")) |>
-  rowwise() |> # added this rowwise()
-  mutate(registry1 = case_when(is.na(registry1) ~ which_registry(trn1),
-                               .default = registry1),
-         registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
-                               .default = registry2)
-  ) |>
-  ungroup()
+  rows_upsert(trn_trn_titles, by = c("trn1", "trn2"))
 
 ####################################################################################################################
 ## Finally add matches from TRNs found in publications
@@ -160,9 +139,9 @@ trn_trn_pubs <- trn_trn_pubs_long |>
   mutate(trn2 = list(unique(c(trn_si_long, trn_abs_long, trn_ft_long)) |> na.omit())) |>
   unnest_longer(trn2) |>
   group_by(trn1, trn2) |>
-  summarise(pub_si = if_else(any(trn2 == trn_si_long), TRUE, FALSE),
-            pub_abs = if_else(any(trn2 == trn_abs_long), TRUE, FALSE),
-            pub_ft = if_else(any(trn2 == trn_ft_long), TRUE, FALSE)) |>
+  summarise(trn2_in_pub_si = if_else(any(trn2 == trn_si_long), TRUE, FALSE),
+            trn2_in_pub_abs = if_else(any(trn2 == trn_abs_long), TRUE, FALSE),
+            trn2_in_pub_ft = if_else(any(trn2 == trn_ft_long), TRUE, FALSE)) |>
   rowwise() |>
   mutate(trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
          trn2inreg1 = trn2 %in% trn_registries$trn2[trn_registries$trn1 == trn1]) |>
@@ -171,15 +150,15 @@ trn_trn_pubs <- trn_trn_pubs_long |>
 
 # Integrate pub matches to larger match table
 trn_trn_pubs_tidy <- trn_trn_titles_tidy |>
-  mutate(pub_si = NA, pub_abs = NA, pub_ft = NA) |>
+  mutate(trn2_in_pub_si = NA, trn2_in_pub_abs = NA, trn2_in_pub_ft = NA) |>
   rows_upsert(trn_trn_pubs, by = c("trn1", "trn2")) |>
+  rowwise() |>
   mutate(registry1 = case_when(is.na(registry1) ~ which_registry(trn1),
                                .default = registry1),
          registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
                                .default = registry2)) |>
-  select(trn1:trn2inreg1, pub_si, pub_abs, pub_ft,
-         is_match_protocol_sponsor_protocol_id, is_match_results_sponsor_protocol_id,
-         is_title_matched)
+  ungroup() |>
+  relocate(contains("pub"), .after = trn2inreg1)
 
 
 
@@ -189,7 +168,7 @@ trn_trn_pubs_tidy <- trn_trn_titles_tidy |>
 trn_trn_pubs_tidy <- trn_trn_pubs_tidy |>
   mutate(at_least_one_EU = if_else((registry1 == "EudraCT" | registry2 == "EudraCT"), TRUE, FALSE),
          at_least_one_IV = if_else((trn1 %in% trials$id | trn2 %in% trials$id), TRUE, FALSE),
-         at_least_one_pub = if_else(!is.na(pub_si) | !is.na(pub_abs) | !is.na(pub_ft), TRUE, FALSE),
+         at_least_one_pub = if_else(!is.na(trn2_in_pub_si) | !is.na(trn2_in_pub_abs) | !is.na(trn2_in_pub_ft), TRUE, FALSE),
          at_least_one_sponsor_match = if_else(!is.na(is_match_protocol_sponsor_protocol_id) |
                                                 !is.na(is_match_results_sponsor_protocol_id), TRUE, FALSE))
 
@@ -207,15 +186,15 @@ trn_trn_final_tidy <- trn_trn_pubs_tidy |>
     # Priority 1
     at_least_one_EU &
       at_least_one_IV &
-      coalesce(trn1inreg2, FALSE) &   # Replace NA with FALSE
-      coalesce(trn2inreg1, FALSE) &   # Replace NA with FALSE
+      trn1inreg2 &
+      trn2inreg1 &
       (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 1,
 
     # Priority 2
     (at_least_one_EU &
       at_least_one_IV &
-      coalesce(trn1inreg2, FALSE) &
-      coalesce(trn2inreg1, FALSE)) |
+      trn1inreg2 &
+      trn2inreg1) |
 
       (at_least_one_EU &
         at_least_one_IV &
@@ -224,13 +203,13 @@ trn_trn_final_tidy <- trn_trn_pubs_tidy |>
     # Priority 3
     at_least_one_EU &
       at_least_one_IV &
-      (coalesce(trn1inreg2, FALSE) | coalesce(trn2inreg1, FALSE)) &
+      (trn1inreg2 | trn2inreg1) &
       (at_least_one_pub | at_least_one_sponsor_match) ~ 3,
 
     # Priority 4
     at_least_one_EU &
       at_least_one_IV &
-      (coalesce(trn1inreg2, FALSE) | coalesce(trn2inreg1, FALSE)) ~ 4,
+      (trn1inreg2 | trn2inreg1) ~ 4,
 
     # Priority 5
     at_least_one_EU &
@@ -242,22 +221,22 @@ trn_trn_final_tidy <- trn_trn_pubs_tidy |>
       at_least_one_IV ~ 6,
 
     # Priority 7
-    (coalesce(trn1inreg2, FALSE) &
-      coalesce(trn2inreg1, FALSE) &
+    (trn1inreg2 &
+      trn2inreg1 &
       (at_least_one_pub | at_least_one_sponsor_match)) |
       coalesce(is_title_matched, FALSE) ~ 7,
 
     # Priority 8
-    coalesce(trn1inreg2, FALSE) &
-      coalesce(trn2inreg1, FALSE) ~ 8,
+    trn1inreg2 &
+      trn2inreg1 ~ 8,
 
     # Priority 9
-    (coalesce(trn1inreg2, FALSE) |
-       coalesce(trn2inreg1, FALSE)) &
+    (trn1inreg2 |
+       trn2inreg1) &
        (at_least_one_pub | at_least_one_sponsor_match) ~ 9,
 
     # Priority 10
-    (coalesce(trn1inreg2, FALSE) | coalesce(trn2inreg1, FALSE)) ~ 10,
+    (trn1inreg2 | trn2inreg1) ~ 10,
 
     # Priority 11
     (at_least_one_pub | at_least_one_sponsor_match ) ~ 11,
