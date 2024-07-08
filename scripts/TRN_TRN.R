@@ -22,7 +22,8 @@ publications <- read_rds("data/cross-registrations/publications_final.rds")
 dir_processed <- here("data", "processed")
 trials <- read_csv(path(dir_processed, "trials.csv"))
 trials <- trials |>
-  select(id)
+  select(id) |>
+  distinct()
 
 ####################################################################################################################
 
@@ -37,7 +38,9 @@ trn_trn_longer <- TRN_registry_data |>
   rename(trn1 = id,
          trn2 = trn_split) |>
   distinct(trn1, trn2, .keep_all = TRUE) |>
-  select(trn1, trn2, everything())
+  relocate(trn1, trn2, everything()) |>
+  assertr::assert_rows(assertr::col_concat, assertr::is_uniq, trn1, trn2)
+
 
 # TRN pairings with registry information added
 trn_registries <- trn_trn_longer |>
@@ -47,8 +50,13 @@ trn_registries <- trn_trn_longer |>
 
 # Add information about whether registries reference each other
 trn_trn_tidy <- trn_registries |>
+  # Check if the current trn1 is mentioned in the registry of the current trn2. If it is, there will be a
+  # row in trn_registries where trn1 = current trn2 and trn2 = current trn1
+
   mutate(trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
-         # this next test is redundant because of circularity? default to TRUE?
+
+         # trn2inreg1 is TRUE by default. We only know about trn2 because it is listed in the trns_reg field of trn1.
+         # We don't need to waste any computations checking if trn2 is in the registry of trn1. At this step, it's a given
          trn2inreg1 = TRUE
   ) |>
   select(trn1, trn2, registry1, registry2, trn1inreg2, trn2inreg1) |>
@@ -211,16 +219,20 @@ trn_trn_final_tidy <- trn_trn_pubs_tidy |>
       (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 1,
 
     # Priority 2
-    at_least_one_EU &
+    (at_least_one_EU &
       at_least_one_IV &
       coalesce(trn1inreg2, FALSE) &
-      coalesce(trn2inreg1, FALSE) ~ 2,
+      coalesce(trn2inreg1, FALSE)) |
+
+      (at_least_one_EU &
+        at_least_one_IV &
+        coalesce(is_title_matched, FALSE)) ~ 2,
 
     # Priority 3
     at_least_one_EU &
       at_least_one_IV &
       (coalesce(trn1inreg2, FALSE) | coalesce(trn2inreg1, FALSE)) &
-      (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 3,
+      (at_least_one_pub | at_least_one_sponsor_match) ~ 3,
 
     # Priority 4
     at_least_one_EU &
@@ -230,30 +242,32 @@ trn_trn_final_tidy <- trn_trn_pubs_tidy |>
     # Priority 5
     at_least_one_EU &
       at_least_one_IV &
-      (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 5,
+      (at_least_one_pub | at_least_one_sponsor_match) ~ 5,
 
     # Priority 6
     at_least_one_EU &
       at_least_one_IV ~ 6,
 
     # Priority 7
-    coalesce(trn1inreg2, FALSE) &
+    (coalesce(trn1inreg2, FALSE) &
       coalesce(trn2inreg1, FALSE) &
-      (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 7,
+      (at_least_one_pub | at_least_one_sponsor_match)) |
+      coalesce(is_title_matched, FALSE) ~ 7,
 
     # Priority 8
     coalesce(trn1inreg2, FALSE) &
       coalesce(trn2inreg1, FALSE) ~ 8,
 
     # Priority 9
-    (coalesce(trn1inreg2, FALSE) | coalesce(trn2inreg1, FALSE)) &
-      (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 9,
+    (coalesce(trn1inreg2, FALSE) |
+       coalesce(trn2inreg1, FALSE)) &
+       (at_least_one_pub | at_least_one_sponsor_match) ~ 9,
 
     # Priority 10
     (coalesce(trn1inreg2, FALSE) | coalesce(trn2inreg1, FALSE)) ~ 10,
 
     # Priority 11
-    (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 11,
+    (at_least_one_pub | at_least_one_sponsor_match ) ~ 11,
 
     # Everything else
     .default = 12
