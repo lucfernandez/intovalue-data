@@ -10,26 +10,24 @@ library(ctregistries)
 
 
 # Load registry data
-TRN_registry_data <- read_rds("data/cross-registrations/TRN(registry data).rds")
+trn_registry_data <- read_rds("data/cross-registrations/trn-registry-data.rds")
 
 # Load title matching data
-title_matches <- read_rds("data/cross-registrations/title_matched_7.rds")
+title_matches <- read_rds("data/cross-registrations/title-matched-7.rds")
 
 # Load the publications table once it's ready
-publications <- read_rds("data/cross-registrations/publications_final.rds")
+publications <- read_rds("data/cross-registrations/trn-publications.rds")
 
-# Load list of IV trials
-dir_processed <- here("data", "processed")
-trials <- read_csv(path(dir_processed, "trials.csv"))
-trials <- trials |>
-  select(id) |>
-  distinct()
+# Get trials, limited to those meeting intovalue criteria
+source(here::here("scripts", "functions", "filter-intovalue-criteria.R"))
+trials <- read_iv_trials()
+
 
 ####################################################################################################################
 
 ## First build matches table from registry data table
 
-trn_trn_longer <- TRN_registry_data |>
+trn_trn_longer <- trn_registry_data |>
   filter(!is.na(trns_reg), # filter rows where trns_reg is empty
          trns_reg != "") |>
   mutate(trn_split = strsplit(trns_reg, ";")) |> # Split trns_reg by semicolon to get individual trial IDs
@@ -70,7 +68,7 @@ trn_trn_tidy <- trn_registries |>
 # FIRST go through the protocol_sponsor_linked_trn
 
 # Isolate protocol sponsor protocol matches
-trn_trn_protocols <- TRN_registry_data |>
+trn_trn_protocols <- trn_registry_data |>
   filter(!is.na(protocol_sponsor_linked_trn), # filter out rows where protocol_sponsor_linked_trn is empty
          protocol_sponsor_linked_trn != "",
          id != protocol_sponsor_linked_trn # or a self-reference
@@ -88,7 +86,7 @@ trn_trn_protocols_tidy <- trn_trn_tidy |>
 # SECOND go through results_sponsor_linked_trn
 
 # Isolate results sponsor protocol matches
-trn_trn_results <- TRN_registry_data |>
+trn_trn_results <- trn_registry_data |>
   filter(!is.na(results_sponsor_linked_trn), # filter out rows where results_sponsor_linked_trn is empty
          results_sponsor_linked_trn != "",
          id != results_sponsor_linked_trn # or a self-reference
