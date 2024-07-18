@@ -58,41 +58,20 @@ trn_merged_pubs <- trn_trn_pair_id %>%
 trn_protocols_merged <- trn_merged_pubs |>
   group_by(pair_id) |>
   mutate(
-    is_match_protocol_sponsor_protocol_id = case_when(
-
-      # If either value is NA, take the first non-NA value. Will be TRUE or FALSE
-      is.na(lag(is_match_protocol_sponsor_protocol_id)) | is.na(lead(is_match_protocol_sponsor_protocol_id)) ~ coalesce(lag(is_match_protocol_sponsor_protocol_id), lead(is_match_protocol_sponsor_protocol_id), FALSE),
-
-      # If either value is TRUE, take TRUE
-      lag(is_match_protocol_sponsor_protocol_id) | lead(is_match_protocol_sponsor_protocol_id) ~ TRUE,
-
-      # All other cases, there is no match, set to FALSE
-      .default = FALSE
-    ),
-    is_match_results_sponsor_protocol_id = case_when(
-
-      is.na(lag(is_match_results_sponsor_protocol_id)) | is.na(lead(is_match_results_sponsor_protocol_id)) ~ coalesce(lag(is_match_results_sponsor_protocol_id), lead(is_match_results_sponsor_protocol_id), FALSE),
-      lag(is_match_results_sponsor_protocol_id) | lead(is_match_results_sponsor_protocol_id) ~ TRUE,
-      .default = FALSE
-    ),
-    is_title_matched = case_when(
-      is.na(lag(is_title_matched)) | is.na(lead(is_title_matched)) ~ coalesce(lag(is_title_matched), lead(is_title_matched), FALSE),
-      lag(is_title_matched) | lead(is_title_matched) ~ TRUE,
-      .default = FALSE)) |>
+    is_match_protocol_sponsor_protocol_id = ifelse(any(!is.na(is_match_protocol_sponsor_protocol_id)),
+                                                   TRUE, NA),
+    is_match_results_sponsor_protocol_id = ifelse(any(!is.na(is_match_results_sponsor_protocol_id)),
+                                                  TRUE, NA),
+    is_title_matched = ifelse(any(!is.na(is_title_matched)),
+                              TRUE, NA)) |>
   ungroup()
 
 # Merge meta booleans
 trn_merged_meta <- trn_protocols_merged |>
   group_by(pair_id) |>
   mutate(
-    at_least_one_pub = case_when(
-      lag(at_least_one_pub) | lead(at_least_one_pub) ~ TRUE,
-      !lag(at_least_one_pub) & !lead(at_least_one_pub) ~ FALSE,
-      .default = FALSE),
-    at_least_one_sponsor_match = case_when(
-      lag(at_least_one_sponsor_match) | lead(at_least_one_sponsor_match) ~ TRUE,
-      !lag(at_least_one_sponsor_match) & !lead(at_least_one_sponsor_match) ~ FALSE,
-      .default = FALSE)) |>
+    at_least_one_pub = ifelse(any(at_least_one_pub), TRUE, FALSE),
+    at_least_one_sponsor_match = ifelse(any(at_least_one_sponsor_match), TRUE, FALSE)) |>
   ungroup()
 
 # Drop duplicated row. They should have the same information now, so just drop the first.
@@ -137,11 +116,6 @@ trn_priorities <- trn_no_dupes |>
       at_least_one_IV &
       at_least_one_sponsor_match &
       is.na(priority) ~ 5,
-
-    # Priority 6
-    at_least_one_EU &
-      at_least_one_IV &
-      is.na(priority) ~ 6,
 
     .default = 7
   ))
