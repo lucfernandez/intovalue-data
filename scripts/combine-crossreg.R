@@ -179,6 +179,7 @@ trn_trn_pubs_tidy <- trn_trn_pubs_tidy |>
 
 trn_trn_final_tidy <- trn_trn_pubs_tidy |>
   ungroup() |> # why the ungroup here?
+  mutate(priority = NA) |>
   mutate(priority = case_when(
 
     # Priority 1
@@ -186,61 +187,49 @@ trn_trn_final_tidy <- trn_trn_pubs_tidy |>
       at_least_one_IV &
       trn1inreg2 &
       trn2inreg1 &
-      (at_least_one_pub | at_least_one_sponsor_match | coalesce(is_title_matched, FALSE)) ~ 1,
+      is.na(priority) ~ 1,
 
     # Priority 2
-    (at_least_one_EU &
+    at_least_one_EU &
       at_least_one_IV &
-      trn1inreg2 &
-      trn2inreg1) |
-
-      (at_least_one_EU &
-        at_least_one_IV &
-        coalesce(is_title_matched, FALSE)) ~ 2,
+      (trn1inreg2 | trn2inreg1) &
+      coalesce(is_title_matched, FALSE) &
+      is.na(priority) ~ 2,
 
     # Priority 3
     at_least_one_EU &
       at_least_one_IV &
       (trn1inreg2 | trn2inreg1) &
-      (at_least_one_pub | at_least_one_sponsor_match) ~ 3,
+      !coalesce(is_title_matched, FALSE) &
+      is.na(priority) ~ 3,
 
     # Priority 4
     at_least_one_EU &
       at_least_one_IV &
-      (trn1inreg2 | trn2inreg1) ~ 4,
+      coalesce(is_title_matched, FALSE) &
+      at_least_one_sponsor_match &
+      is.na(priority) ~ 4,
 
     # Priority 5
     at_least_one_EU &
       at_least_one_IV &
-      (at_least_one_pub | at_least_one_sponsor_match) ~ 5,
+      coalesce(is_title_matched, FALSE) &
+      is.na(priority) ~ 5,
 
     # Priority 6
     at_least_one_EU &
-      at_least_one_IV ~ 6,
+      at_least_one_IV &
+      at_least_one_pub &
+      is.na(priority) ~ 6,
 
     # Priority 7
-    (trn1inreg2 &
-      trn2inreg1 &
-      (at_least_one_pub | at_least_one_sponsor_match)) |
-      coalesce(is_title_matched, FALSE) ~ 7,
-
-    # Priority 8
-    trn1inreg2 &
-      trn2inreg1 ~ 8,
-
-    # Priority 9
-    (trn1inreg2 |
-       trn2inreg1) &
-       (at_least_one_pub | at_least_one_sponsor_match) ~ 9,
-
-    # Priority 10
-    (trn1inreg2 | trn2inreg1) ~ 10,
-
-    # Priority 11
-    (at_least_one_pub | at_least_one_sponsor_match ) ~ 11,
+    at_least_one_EU &
+      at_least_one_IV &
+      at_least_one_sponsor_match &
+      is.na(priority)~ 7,
 
     # Everything else
-    .default = 12
+    .default = 8
   ))
 
 
