@@ -136,9 +136,14 @@ trn_priorities <- trn_no_dupes |>
     at_least_one_EU &
       at_least_one_IV &
       at_least_one_sponsor_match &
-      is.na(priority )~ 5,
+      is.na(priority) ~ 5,
 
-    .default = 6
+    # Priority 6
+    at_least_one_EU &
+      at_least_one_IV &
+      is.na(priority) ~ 6,
+
+    .default = 7
   ))
 
 # Rearrange columns to make manual checks easiest

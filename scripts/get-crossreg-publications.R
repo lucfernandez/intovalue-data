@@ -10,16 +10,21 @@ library(fs)
 library(lubridate)
 library(stringr)
 
-dir_processed <- here("data", "processed")
+# Get cross-registrations, limited to those meeting intovalue criteria
+source(here::here("scripts", "functions", "filter-intovalue-criteria.R"))
+cross_registrations <- read_iv_cross_registrations()
 
-cross_registrations <- read_rds(path(dir_processed, "trn", "cross-registrations.rds"))
 
-# filter for crossregs identified based on publication
 # crossreg_from_pubs will give us information about WHERE in the publication the cross-registered TRNs can be found
-crossreg_from_pubs <- cross_registrations %>%
-  filter(is_crossreg_secondary_id == TRUE | is_crossreg_abstract == TRUE | is_crossreg_ft == TRUE) %>% # filter out all cross-regs that aren't linked by a pub
-  select(!is_crossreg_reg) %>%
-  unique()
+crossreg_from_pubs <-
+  cross_registrations |>
+
+  # filter for crossregs identified based on publication
+  filter(is_crossreg_secondary_id == TRUE | is_crossreg_abstract == TRUE | is_crossreg_ft == TRUE) |>
+
+  # filter out all cross-regs that aren't linked by a pub
+  select(!is_crossreg_reg) |>
+  distinct()
 
 ##############################################################################################
 
@@ -52,4 +57,6 @@ pubs_with_info <- crossreg_from_pubs |>
    # Add final trns_other column for miscellaneous TRNs
    # add_column(trns_other = NA)
 
-saveRDS(pubs_with_info, "data/cross-registrations/publications_final.rds")
+# Save as rds (will overwrite previous version)
+dir_crossreg <- fs::dir_create(here::here("data", "cross-registrations"))
+readr::write_rds(pubs_with_info, fs::path(dir_crossreg, "trn-publications.rds"))
