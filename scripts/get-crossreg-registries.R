@@ -21,7 +21,7 @@ library(cli)
 dir_raw <- here("data", "raw")
 
 # Get trials and cross-registrations, limited to those meeting intovalue criteria
-source(here::here("scripts", "functions", "filter-intovalue-criteria.R"))
+source(here::here("scripts", "functions", "filter-intovalue-criteria.r"))
 trials <- read_iv_trials()
 cross_registrations <- read_iv_cross_registrations()
 
