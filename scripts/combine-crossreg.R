@@ -13,7 +13,7 @@ library(ctregistries)
 trn_registry_data <- read_rds("data/cross-registrations/trn-registry-data.rds")
 
 # Load title matching data
-title_matches <- read_rds("data/cross-registrations/title-matched-7.rds")
+title_matches <- read_rds("data/cross-registrations/title-matched-10.rds")
 
 # Load the publications table once it's ready
 publications <- read_rds("data/cross-registrations/trn-publications.rds")
@@ -37,6 +37,8 @@ trn_trn_longer <- trn_registry_data |>
          trn2 = trn_split) |>
   distinct(trn1, trn2, .keep_all = TRUE) |>
   relocate(trn1, trn2, everything()) |>
+  # Confirm that trn1/trn2 pairs are not repeated
+  # Note that the same trns may appear flipped, i.e., trn2/trn1
   assertr::assert_rows(assertr::col_concat, assertr::is_uniq, trn1, trn2)
 
 
