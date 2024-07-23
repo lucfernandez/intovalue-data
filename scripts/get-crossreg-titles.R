@@ -95,7 +95,7 @@ eu_only_german <- eu_only_german |> select(id,title) |>
 
 # assigning maxDist value for title matching (Elements in x will not be matched
 # with elements of table if their distance is larger than maxDist)
-DISTANCE <- 7
+DISTANCE <- 10
 
 ## The below takes about 3.5 hours on my baseline 2020 MacBook Air
 ## Let it run, it takes a while!!
@@ -138,7 +138,7 @@ assign(paste0("title_matches_", DISTANCE), title_matches)
 
 # Save as rds (will overwrite previous version)
 dir_crossreg <- fs::dir_create(here::here("data", "cross-registrations"))
-readr::write_rds(title_matches_7, fs::path(dir_crossreg, "title-matched-7.rds"))
+readr::write_rds(title_matches_10, fs::path(dir_crossreg, "title-matched-10.rds"))
 
 
 
