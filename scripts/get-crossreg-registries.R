@@ -31,7 +31,7 @@ cross_registrations <- read_iv_cross_registrations()
 # Study sponsor ID numbers are most likely to get additional matches when joining to sponsor_s_protocol_code_number.
 
 ids_ctgov <-
-  read_csv(here("data", "raw", "registries", "ctgov", "ids.csv")) |>
+  read_rds(here("data", "processed", "registries", "ctgov", "ctgov-ids.rds")) |>
   rename(other_id = id_value) |>
 
   # Some duplicated other_id missing id_type in single occurence
