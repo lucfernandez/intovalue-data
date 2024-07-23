@@ -10,7 +10,7 @@ library(ctregistries)
 
 
 # Load registry data
-trn_registry_data <- read_rds("data/cross-registrations/trn-registry-data.rds")
+trn_registry_data <- read_rds("data/cross-registrations/TRN(registry data).rds")
 
 # Load title matching data
 title_matches <- read_rds("data/cross-registrations/title-matched-10.rds")
@@ -142,30 +142,32 @@ trn_trn_pubs <- trn_trn_pubs_long |>
   summarise(trn2_in_pub_si = if_else(any(trn2 == trn_si_long), TRUE, FALSE),
             trn2_in_pub_abs = if_else(any(trn2 == trn_abs_long), TRUE, FALSE),
             trn2_in_pub_ft = if_else(any(trn2 == trn_ft_long), TRUE, FALSE)) |>
-  rowwise() |>
-  mutate(trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
-         trn2inreg1 = trn2 %in% trn_registries$trn2[trn_registries$trn1 == trn1]) |>
-  select(trn1, trn2, trn1inreg2, trn2inreg1, contains("pub")) |>
+  select(trn1, trn2, contains("pub")) |>
   ungroup()
 
 # Integrate pub matches to larger match table
 trn_trn_pubs_tidy <- trn_trn_titles_tidy |>
   mutate(trn2_in_pub_si = NA, trn2_in_pub_abs = NA, trn2_in_pub_ft = NA) |>
-  rows_upsert(trn_trn_pubs, by = c("trn1", "trn2")) |>
+  rows_upsert(trn_trn_pubs, by = c("trn1", "trn2"))
+
+# Add registry information, and update trn1inreg2 and trn2inreg1 for all rows in table
+
+trn_trn_registries <- trn_trn_pubs_tidy |>
   rowwise() |>
   mutate(registry1 = case_when(is.na(registry1) ~ which_registry(trn1),
-                               .default = registry1),
+                               TRUE ~ registry1),
          registry2 = case_when(is.na(registry2) ~ which_registry(trn2),
-                               .default = registry2)) |>
+                               TRUE ~ registry2)) |>
+  mutate(trn1inreg2 = trn1 %in% trn_registries$trn2[trn_registries$trn1 == trn2],
+         trn2inreg1 = trn2 %in% trn_registries$trn2[trn_registries$trn1 == trn1]) |>
   ungroup() |>
   relocate(contains("pub"), .after = trn2inreg1)
-
 
 
 ####################################################################################################################
 ## Adding so called 'meta booleans' to make it easier to assign priorities to rows for manual validation stage
 
-trn_trn_pubs_tidy <- trn_trn_pubs_tidy |>
+trn_trn_registries <- trn_trn_registries |>
   mutate(at_least_one_EU = if_else((registry1 == "EudraCT" | registry2 == "EudraCT"), TRUE, FALSE),
          at_least_one_IV = if_else((trn1 %in% trials$id | trn2 %in% trials$id), TRUE, FALSE),
          at_least_one_pub = if_else(!is.na(trn2_in_pub_si) | !is.na(trn2_in_pub_abs) | !is.na(trn2_in_pub_ft), TRUE, FALSE),
@@ -179,7 +181,7 @@ trn_trn_pubs_tidy <- trn_trn_pubs_tidy |>
 # Use coalesce() function: returns the first non-NA value in a list. Eg.) coalesce(NA, FALSE) == FALSE ; coalesce(NA, NA, 7) == 7
 
 
-trn_trn_final_tidy <- trn_trn_pubs_tidy |>
+trn_trn_final_tidy <- trn_trn_registries |>
   ungroup() |> # why the ungroup here?
   mutate(priority = NA) |>
   mutate(priority = case_when(
