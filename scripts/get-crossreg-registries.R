@@ -31,7 +31,7 @@ cross_registrations <- read_iv_cross_registrations()
 # Study sponsor ID numbers are most likely to get additional matches when joining to sponsor_s_protocol_code_number.
 
 ids_ctgov <-
-  read_rds(here("data", "processed", "registries", "ctgov", "ctgov-ids.rds")) |>
+  read_csv(here("data", "raw", "registries", "ctgov", "ids.csv")) |>
   rename(other_id = id_value) |>
 
   # Some duplicated other_id missing id_type in single occurence
@@ -340,11 +340,14 @@ eu_results_clean <- eu_results_dump |>
 # like 2020-002109-24, where a valid Chinese and a valid Japanese ID are just smushed together. Must figure out how to deal with this.
 # multiple valid IDs in a list sometimes don't get recognized: 2021-000904-39
 
-# Add progress bar (be patient)
+# Add progress bar (Be patient, progress bar takes at least 10 minutes to display at all)
+
 cli_progress_bar(name = "Cleaning EU results data columns (3 total) : ", total = 3)
 
 # Clean table column by column
 for (col in columns_to_clean) {
+
+
   cleaned_trns <- vector("list", length <- nrow(eu_results_clean))
 
   # 'trn' is the id in each row currently being cleaned
@@ -352,14 +355,18 @@ for (col in columns_to_clean) {
 
     trn <- eu_results_clean[[i, col]]
 
+    # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
+    # The clean_trn() function is from the ctregistries package (https://github.com/maia-sh/ctregistries)
+    # clean_trn() takes a single messy TRN as input. Currently, it is able to clean TRNs from ANZCTR, CT.gov, DRKS, ISRCTN, JapicCTI, EudraCT, NTR, and PACTR
+    # It returns either single clean TRN, an error if the TRN is not recognised as associated with either of the above registries, or NA if the TRN is NA.
+
     if(is.na(trn)) {
       cleaned_trns[[i]] <- NA
-      unclean_col <- paste0(col, "_protocol_unclean")
-      eu_protocol_clean[[unclean_col]][i] <- trn
+      unclean_col <- paste0(col, "_results_unclean")
+      eu_results_clean[[unclean_col]][i] <- trn
       next
     }
 
-    # Detects whether cleaning the string 'trn' throws an error. If yes, initialize 'cleaned' with "Error"
     cleaned <- tryCatch(clean_trn(trn, quiet = TRUE), error = function(e) "Error")
 
     # If the TRN can't be cleaned, eliminate it from cleaned column and place in corresponding unclean column for later evaluation
@@ -369,7 +376,7 @@ for (col in columns_to_clean) {
       eu_results_clean[[unclean_col]][i] <- trn # Would be a garbage number
     }
 
-    # If 'trn' can be cleaned, save it and discard old trn
+    # If 'trn' can be cleaned, save it and discard the old TRN
     else {
       cleaned_trns[[i]] <- cleaned
       unclean_col <- paste0(col, "_results_unclean")
@@ -395,6 +402,8 @@ for (col in columns_to_clean) {
 
 # Terminate progress bar
 cli_progress_done()
+
+
 
 ##########################################################
 ## Clean the Dutch stragglers from eu_results_clean not caught by algorithm and put in trns_reg
@@ -525,12 +534,12 @@ trn_registry_data <- trn_registry_data |>
 # See if id_value field in that table matches with our protocol_sponsor_code field or our results_sponsor_code field. If they match, bring in the value from the nct_id field in ids.csv table.
 
 protocol_sponsor_linked_ids <- ids_linked |>
-                              rename(protocol_sponsor_code = id_value) |>
-                              rename(protocol_sponsor_linked_trn = nct_id)
+                              rename(protocol_sponsor_code = other_id) |>
+                              rename(protocol_sponsor_linked_trn = id)
 
 results_sponsor_linked_ids <- ids_linked |>
-                             rename(results_sponsor_code = id_value) |>
-                             rename(results_sponsor_linked_trn = nct_id)
+                             rename(results_sponsor_code = other_id) |>
+                             rename(results_sponsor_linked_trn = id)
 
 # Left join in sponsor linked TRNs from protocol data
 trn_registry_data <- left_join(trn_registry_data, protocol_sponsor_linked_ids, by = "protocol_sponsor_code") |>
