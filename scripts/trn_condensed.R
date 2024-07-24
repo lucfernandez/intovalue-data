@@ -125,3 +125,5 @@ trn_manual_checks <- trn_priorities |>
   relocate(trn1_in_pub_si, trn1_in_pub_abs, trn1_in_pub_ft, .before = trn2_in_pub_si) |>
   select(-pair_id)
 
+# Save finished product
+saveRDS(trn_manual_checks, "data/cross-registrations/trn_manual_checks.rds")
