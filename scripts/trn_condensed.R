@@ -14,74 +14,69 @@ trn_trn_no_regs <- trn_trn |>
   select(-registry1, -registry2)
 
 # Create a unique identifier for pairs, which allows us to identify duplicate pairs
-trn_trn_pair_id <- trn_trn_no_regs %>%
-  rowwise |>
+trn_trn_pair_id <- trn_trn_no_regs |>
+  rowwise() |>
   mutate(pair_id = paste(sort(c(trn1, trn2)), collapse = "_")) |>
   ungroup()
 
-# Group and merge publication and trn1inreg2/trn2inreg1 information
-trn_merged_pubs <- trn_trn_pair_id %>%
-  group_by(pair_id) %>%
-
-  # Copy the trn2 boolean information of the other trial with the same pair_id into the other trials trn1 boolean fields
-  mutate(
-    trn1_in_pub_si = if_else(trn1 == first(trn1), lead(trn2_in_pub_si), lag(trn2_in_pub_si)),
-    trn1_in_pub_abs = if_else(trn1 == first(trn1), lead(trn2_in_pub_abs), lag(trn2_in_pub_abs)),
-    trn1_in_pub_ft = if_else(trn1 == first(trn1), lead(trn2_in_pub_ft), lag(trn2_in_pub_ft)),
-
-    trn1inreg2 = case_when(
-      trn1 == first(trn1) & (is.na(trn1inreg2) & is.na(lead(trn2inreg1))) ~ NA,
-      trn1 == first(trn1) & (trn1inreg2 == lead(trn2inreg1)) ~ trn1inreg2,
-      trn1 == first(trn1) & (is.na(trn1inreg2) | is.na(lead(trn2inreg1))) ~ coalesce(trn1inreg2, lead(trn2inreg1), FALSE),
-
-      trn1 != first(trn1) & (is.na(trn1inreg2) & is.na(lag(trn2inreg1))) ~ NA,
-      trn1 != first(trn1) & (trn1inreg2 == lag(trn2inreg1)) ~ trn1inreg2,
-      trn1 != first(trn1) & (is.na(trn1inreg2) | is.na(lag(trn2inreg1))) ~ coalesce(trn1inreg2, lag(trn2inreg1), FALSE),
-
-      .default = NA
-    ),
-    trn2inreg1 = case_when(
-      trn1 == first(trn1) & (is.na(trn2inreg1) & is.na(lead(trn1inreg2))) ~ NA,
-      trn1 == first(trn1) & (trn2inreg1 == lead(trn1inreg2)) ~ trn2inreg1,
-      trn1 == first(trn1) & (is.na(trn2inreg1) | is.na(lead(trn1inreg2))) ~ coalesce(trn2inreg1, lead(trn1inreg2), FALSE),
-
-      trn1 != first(trn1) & (is.na(trn2inreg1) & is.na(lag(trn1inreg2))) ~ NA,
-      trn1 != first(trn1) & (trn2inreg1 == lag(trn1inreg2)) ~ trn2inreg1,
-      trn1 != first(trn1) & (is.na(trn2inreg1) | is.na(lag(trn1inreg2))) ~ coalesce(trn2inreg1, lag(trn1inreg2), FALSE),
-
-      .default = NA
-    )
-  ) %>%
-  ungroup()
-
-# Merge protocol ID and title matching information
-trn_protocols_merged <- trn_merged_pubs |>
+# get duplicates and only work on those to ensure the rest of data stay in original state
+# and this also speeds up processig a tiny bit
+trn_trn_dupes <- janitor::get_dupes(trn_trn_pair_id, pair_id) |> # janitor is a helpful library for this
   group_by(pair_id) |>
-  mutate(
-    is_match_protocol_sponsor_protocol_id = ifelse(any(!is.na(is_match_protocol_sponsor_protocol_id)),
-                                                   TRUE, NA),
-    is_match_results_sponsor_protocol_id = ifelse(any(!is.na(is_match_results_sponsor_protocol_id)),
-                                                  TRUE, NA),
-    is_title_matched = ifelse(any(!is.na(is_title_matched)),
-                              TRUE, NA)) |>
+  arrange(trn1) |> # arranging by trn1 gives one of the registries priority, which is nicer than having pairs randomly having e.g. NCT trns first or EUCT trns first
+  mutate(rank = 1:n()) |> # this gives rank to the first trn in alphabetical order
   ungroup()
 
-# Merge meta booleans
-trn_merged_meta <- trn_protocols_merged |>
-  group_by(pair_id) |>
-  mutate(
-    at_least_one_pub = ifelse(any(at_least_one_pub), TRUE, FALSE),
-    at_least_one_sponsor_match = ifelse(any(at_least_one_sponsor_match), TRUE, FALSE)) |>
-  ungroup()
+#### run your code with trn_trn_dupes instead of trn_trn_pair_id to allow for direct comparisons here and below!
+# this function renames 1s to 2s and vice versa. There may be a better method, but I worked for speed here
+rerank <- function(string) {
+  string |>
+    stringr::str_replace_all("1", "!!") |>
+    stringr::str_replace_all("2", "1") |>
+    stringr::str_replace_all("!!", "2")
+}
 
-# Drop duplicated row. They should have the same information now, so just drop the first.
-trn_no_dupes <- trn_merged_meta |>
-  group_by(pair_id) |>
-  slice_head(n= 1) |>
-  ungroup()
+rank1 <- trn_trn_dupes |>
+  filter(rank == 1) |>
+  select(pair_id, trn1, trn1inreg2, contains("trn2_"), contains("is_"),
+         contains("at_least"))
+
+rank2 <- trn_trn_dupes |>
+  filter(rank == 2) |>
+  select(pair_id, trn1, trn1inreg2, contains("trn2_"), contains("is_"),
+         contains("at_least")) |>
+  rename_with(rerank)
+
+ranks_merged <- rank1 |>
+  left_join(rank2, by = "pair_id") |>
+  # this join adds .x and .y to the column names that are found in both tables and are not "pair_id"
+  mutate(is_match_protocol_sponsor_protocol_id =
+           coalesce(is_match_protocol_sponsor_protocol_id.x,
+                    is_match_protocol_sponsor_protocol_id.y),
+         is_match_results_sponsor_protocol_id =
+           coalesce(is_match_results_sponsor_protocol_id.x,
+                    is_match_results_sponsor_protocol_id.y),
+         is_title_matched =
+           coalesce(is_title_matched.x, is_title_matched.y),
+         at_least_one_pub = at_least_one_pub.x | at_least_one_pub.y,
+         at_least_one_sponsor_match = at_least_one_sponsor_match.x |
+           at_least_one_sponsor_match.y,
+         at_least_one_EU = at_least_one_EU.x | at_least_one_EU.y ,
+         at_least_one_IV = at_least_one_IV.x | at_least_one_IV.y) |>
+  select(pair_id, trn1, trn2, trn1inreg2, trn2inreg1,
+         contains("trn1_"), contains("trn2_"), is_match_protocol_sponsor_protocol_id,
+         is_match_results_sponsor_protocol_id, is_title_matched,
+         at_least_one_pub,
+         at_least_one_sponsor_match, at_least_one_EU, at_least_one_IV)
+
+trn_no_dupes_ranks <- trn_trn_pair_id |>
+  filter(!pair_id %in% ranks_merged$pair_id) |> # remove old dupes first
+  bind_rows(ranks_merged) |> # add deduplicated trns
+  arrange(trn1, trn2)
+
 
 # Reassign priorities based on Delwen's proposal:
-trn_priorities <- trn_no_dupes |>
+trn_priorities <- trn_no_dupes_ranks |>
   mutate(priority = NA) |>
   mutate(priority = case_when(
 
