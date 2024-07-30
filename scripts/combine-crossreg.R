@@ -150,6 +150,7 @@ trn_trn_pubs_tidy <- trn_trn_titles_tidy |>
   mutate(trn2_in_pub_si = NA, trn2_in_pub_abs = NA, trn2_in_pub_ft = NA) |>
   rows_upsert(trn_trn_pubs, by = c("trn1", "trn2"))
 
+
 # Add registry information, and update trn1inreg2 and trn2inreg1 for all rows in table
 
 trn_trn_registries <- trn_trn_pubs_tidy |>
