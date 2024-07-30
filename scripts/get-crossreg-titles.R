@@ -118,7 +118,7 @@ start_time <- Sys.time()
     !is.na(id)
   ) |>
   distinct(
-    # euctr_id, # we want to preserve all EUCTR crossreg for given trial
+    euctr_id, # preserve all unique combinations of EUCTR number and ID
     id,
     .keep_all = TRUE
   ) |>
