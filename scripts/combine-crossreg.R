@@ -10,7 +10,7 @@ library(ctregistries)
 
 
 # Load registry data
-trn_registry_data <- read_rds("data/cross-registrations/TRN(registry data).rds")
+trn_registry_data <- read_rds("data/cross-registrations/trn-registry-data.rds")
 
 # Load title matching data
 title_matches <- read_rds("data/cross-registrations/title-matched-10.rds")
