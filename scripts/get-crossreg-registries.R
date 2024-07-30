@@ -493,11 +493,14 @@ eu_clean <- subset(eu_clean, select = -c(trns_reg_protocol, trns_reg_results))
 
 EU_unclean <- eu_clean |>
   select(id,
-         isrctn_number_protocol_unclean,
+         isrctn_number_protocol_unclean.x,
+         isrctn_number_protocol_unclean.y,
          isrctn_number_results_unclean,
-         nct_number_protocol_unclean,
+         nct_number_protocol_unclean.x,
+         nct_number_protocol_unclean.y,
          nct_number_results_unclean,
-         other_ids_protocol_unclean,
+         other_ids_protocol_unclean.x,
+         other_ids_protocol_unclean.y,
          other_ids_results_unclean,
          who_utn_combined
   )
