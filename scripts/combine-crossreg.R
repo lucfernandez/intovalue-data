@@ -8,7 +8,14 @@ library(lubridate)
 library(tidyverse)
 library(ctregistries)
 library("readxl")
+library(here)
 
+dir_raw <- here("data", "raw")
+
+# Load EU protocol data to check that EUCTR IDs resolve
+# Will add flag to any EUCTR IDs in table that aren't found in protocol dump
+eu_protocol_dump <-
+  read_csv(path(dir_raw, "registries", "euctr", "euctr_euctr_dump-2024-02-03-054239.csv"))
 
 # Load registry data
 trn_registry_data <- read_rds("data/cross-registrations/trn-registry-data.rds")
@@ -244,7 +251,18 @@ trn_trn_final_tidy <- trn_trn_registries |>
 
 # Add flag to TRN pairings where at least one of trn1 or trn2 contains a DRKS number mentioned in the deleted numbers table
 trn_trn_final_tidy <- trn_trn_final_tidy |>
-  mutate(drks_removed = if_else(trn1 %in% drks_removed$drks_id | trn2 %in% drks_removed$drks_id, TRUE, FALSE))
+  mutate(drks_removed = if_else(trn1 %in% drks_removed$drks_id | trn2 %in% drks_removed$drks_id, TRUE, FALSE)) |>
+  mutate(euctr_id_not_in_euctr = case_when(
+
+    # TRUE if either of the TRNs is an EUCTR ID and NOT in protocol dump
+    (registry1 == "EudraCT" & !(trn1 %in% eu_protocol_dump$eudract_number)) | (!(trn2 %in% eu_protocol_dump$eudract_number) & registry2 == "EudraCT") ~ TRUE,
+
+    # FALSE if either of the TRNs is an EUCTR ID and both are in protocol dump
+    (registry1 == "EudraCT" & (trn1 %in% eu_protocol_dump$eudract_number)) | ((trn2 %in% eu_protocol_dump$eudract_number) & registry2 == "EudraCT") ~ FALSE,
+
+    # NA if neither of the TRNs is an EUCTR ID
+    registry1 != "EudraCT" & registry2 != "EudraCT" ~ NA
+  ))
 
 # save
 saveRDS(trn_trn_final_tidy, "data/cross-registrations/trn_trn.rds")
