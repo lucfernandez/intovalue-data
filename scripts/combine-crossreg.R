@@ -12,10 +12,10 @@ library(here)
 
 dir_raw <- here("data", "raw")
 
-# Load EU protocol data to check that EUCTR IDs resolve
+# Load LATEST EU protocol data to check that EUCTR IDs resolve (not the same EU dump we used to build these tables, a more updated version)
 # Will add flag to any EUCTR IDs in table that aren't found in protocol dump
 eu_protocol_dump <-
-  read_csv(path(dir_raw, "registries", "euctr", "euctr_euctr_dump-2024-02-03-054239.csv"))
+  read_csv(path(dir_raw, "registries", "euctr", "euctr_euctr_dump-2024-09-07-092059.csv"))
 
 # Load registry data
 trn_registry_data <- read_rds("data/cross-registrations/trn-registry-data.rds")
