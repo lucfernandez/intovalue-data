@@ -6,9 +6,17 @@ library(lubridate)
 library(tidyverse)
 library(ctregistries)
 library("readxl")
+library(here)
+
+dir_raw <- here("data", "raw")
 
 # Load long trn_trn table
 trn_trn <- read_rds("data/cross-registrations/trn_trn.rds")
+
+# Load LATEST EU protocol data to check that EUCTR IDs resolve (not the same EU dump we used to build these tables, a more updated version)
+# Will add flag to any EUCTR IDs in table that aren't found in protocol dump
+eu_protocol_dump <-
+  read_csv(path(dir_raw, "registries", "euctr", "euctr_euctr_dump-2024-09-07-092059.csv"))
 
 # Load list of trials removed from DRKS after 2022. Will add flag to any TRN pairing that contains the DRKS number removed (not the associated NCT)
 # Also, I edited the original file to change the first column name to drks_id and second column name to nct_id
@@ -17,7 +25,7 @@ drks_removed <- read_excel("data/raw/registries/drks/drks-nicht-migrierte-ctgov-
 
 # Drop unnecessary columns, add new publication booleans
 trn_trn_no_regs <- trn_trn |>
-  select(-registry1, -registry2, -drks_removed)
+  select(-registry1, -registry2, -drks_removed, -euctr_id_not_in_euctr)
 
 # Create a unique identifier for pairs, which allows us to identify duplicate pairs
 trn_trn_pair_id <- trn_trn_no_regs |>
@@ -128,7 +136,8 @@ trn_manual_checks <- trn_priorities |>
 
 # Add flag to TRN pairings where at least one of trn1 or trn2 contains a DRKS number mentioned in the deleted numbers table
 trn_manual_checks <- trn_manual_checks |>
-  mutate(drks_removed = if_else(trn1 %in% drks_removed$drks_id | trn2 %in% drks_removed$drks_id, TRUE, FALSE))
+  mutate(drks_removed = if_else(trn1 %in% drks_removed$drks_id | trn2 %in% drks_removed$drks_id, TRUE, FALSE)) |>
+  mutate(euctr_id_in_euctr = if_else((trn1 %in% eu_protocol_dump$eudract_number) | (trn2 %in% eu_protocol_dump$eudract_number), TRUE, FALSE))
 
 # Save finished product
 saveRDS(trn_manual_checks, "data/cross-registrations/trn_manual_checks.rds")
