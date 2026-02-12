@@ -34,6 +34,8 @@ trials <- read_iv_trials()
 # Also, I edited the original file to change the first column name to drks_id and second column name to nct_id
 
 drks_removed <- read_excel("data/raw/registries/drks/drks-nicht-migrierte-ctgov-studien.xlsx")
+drks_removed <- drks_removed |>
+  rename(drks_id = `Ehemalige DRKS-ID der nicht migrierten Studie\r\nFormer DRKS ID of study not migrated`)
 
 ####################################################################################################################
 
@@ -265,4 +267,4 @@ trn_trn_final_tidy <- trn_trn_final_tidy |>
   ))
 
 # save
-saveRDS(trn_trn_final_tidy, "data/cross-registrations/trn_trn.rds")
+saveRDS(trn_trn_final_tidy, "data/cross-registrations/trn_trn_old.rds")
