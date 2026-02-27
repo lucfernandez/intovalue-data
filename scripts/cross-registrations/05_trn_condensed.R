@@ -21,7 +21,8 @@ eu_protocol_dump <-
 # Load list of trials removed from DRKS after 2022. Will add flag to any TRN pairing that contains the DRKS number removed (not the associated NCT)
 # Also, I edited the original file to change the first column name to drks_id and second column name to nct_id
 
-drks_removed <- read_excel("data/raw/registries/drks/drks-nicht-migrierte-ctgov-studien.xlsx")
+drks_removed <- read_excel("data/raw/registries/drks/drks-nicht-migrierte-ctgov-studien.xlsx") |>
+  rename(drks_id = `Ehemalige DRKS-ID der nicht migrierten Studie\r\nFormer DRKS ID of study not migrated`)
 
 # Drop unnecessary columns, add new publication booleans
 trn_trn_no_regs <- trn_trn |>
